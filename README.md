@@ -5,6 +5,7 @@ Organizations and individuals often struggle with managing events efficiently—
 
 **Objective:**
 To develop a RESTful Event Management System where:
+
   *Organizers can create, update, and manage events.
   *Attendees can browse events, RSVP to them, and receive reminders.
   *The system should support filtering, status tracking (upcoming/past), and secure access using authentication and role-based authorization.

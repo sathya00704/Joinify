@@ -5,31 +5,31 @@ Organizations and individuals often struggle with managing events efficiently—
 
 Objective:
 To develop a RESTful Event Management System where:
-  *Organizers can create, update, and manage events.
-  *Attendees can browse events, RSVP to them, and receive reminders.
-  *The system should support filtering, status tracking (upcoming/past), and secure access using authentication and role-based authorization.
+*Organizers can create, update, and manage events.
+*Attendees can browse events, RSVP to them, and receive reminders.
+*The system should support filtering, status tracking (upcoming/past), and secure access using authentication and role-based authorization.
 
 Key Features:
 User Roles:
-  * Organizer: Can create, edit, and delete events; view RSVPs for their events.
-  * Attendee: Can view and RSVP to available events.
+* Organizer: Can create, edit, and delete events; view RSVPs for their events.
+* Attendee: Can view and RSVP to available events.
 
 Event Functionality:
-  * Create, update, delete events with fields like:
-     - Title, Description
-     - Date and Time
-     - Location
-     - Max Capacity
-  * Filter events into Upcoming and Past based on current date.
-  
-  * RSVP Tracking:
-    - Attendees can RSVP to events.
-    - Organizers can view a list of attendees.
-  * Prevent overbooking (respect max capacity).
-  * Reminder System:
-    - Users receive reminders (via email notification) 24 hours before event start.
+* Create, update, delete events with fields like:
+- Title, Description
+- Date and Time
+- Location
+- Max Capacity
+* Filter events into Upcoming and Past based on current date.
+
+* RSVP Tracking:
+- Attendees can RSVP to events.
+- Organizers can view a list of attendees.
+* Prevent overbooking (respect max capacity).
+* Reminder System:
+- Users receive reminders (via email notification) 24 hours before event start.
 
 Technical:
-  * Backend: Spring Boot, JPA/Hibernate, RESTful API, JWT-based security.
-  * Frontend: HTML, CSS, and JavaScript
-  * Database: MySQL
+* Backend: Spring Boot, JPA/Hibernate, RESTful API, JWT-based security.
+* Frontend: HTML, CSS, and JavaScript
+* Database: MySQL

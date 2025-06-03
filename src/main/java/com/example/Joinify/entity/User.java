@@ -43,6 +43,11 @@ public class User {
         this.rsvps = rsvps;
     }
 
+    // Default Constructor (Required by JPA)
+    public User() {
+
+    }
+
     public Long getId() {
         return id;
     }

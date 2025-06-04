@@ -1,7 +1,8 @@
 package com.example.Joinify.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Future;
+//import jakarta.validation.constraints.Future;
+//import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -19,7 +20,8 @@ public class Event {
 
     private String description;
 
-    @Future(message = "Event date must be in the future")
+    //@Future(message = "Event date must be in the future")
+    //@FutureOrPresent(message = "Event date must be in the present or future")
     private LocalDateTime dateTime;
 
     private String location;
@@ -44,6 +46,9 @@ public class Event {
         this.maxCapacity = maxCapacity;
         this.organizer = organizer;
         this.rsvps = rsvps;
+    }
+
+    public Event() {
     }
 
     public Long getId() {

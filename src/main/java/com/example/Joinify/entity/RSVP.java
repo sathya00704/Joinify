@@ -24,6 +24,10 @@ public class RSVP {
     private LocalDateTime rsvpDate;
 
     // Constructors, Getters, Setters
+    public RSVP() {
+        this.rsvpDate = LocalDateTime.now();
+        this.status = RSVPStatus.PENDING;
+    }
 
     public RSVP(Long id, User user, Event event, RSVPStatus status, LocalDateTime rsvpDate) {
         this.id = id;

@@ -18,6 +18,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.Arrays;
 
 @Configuration
@@ -31,37 +32,35 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // Disable CSRF (for REST API)
                 .csrf(csrf -> csrf.disable())
-
-                // Configure CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
-                // Configure session management as STATELESS
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                // Set up public and protected endpoints
                 .authorizeHttpRequests(auth -> auth
-                        // Set up public endpoints (login, register, static files)
                         .requestMatchers(
-                                "/api/auth/**",      // Authentication endpoints
-                                "/hello.html",       // Static HTML files
+                                "/api/auth/**",
+                                "/hello.html",
+                                "/test.html",
                                 "/css/**",
                                 "/js/**",
-                                "/images/**"
+                                "/images/**",
+                                "/api/events",
+                                "/api/events/**",        // Allow all event endpoints publicly for testing
+                                "/api/rsvp/event/*/count",
+                                "/api/users/stats",
+                                "/api/users/organizers",
+                                "/api/users/attendees"
                         ).permitAll()
-
-                        // Set up protected endpoints (events, RSVP)
-                        .requestMatchers("/api/events/**").hasAnyRole("ORGANIZER", "ATTENDEE")
-                        .requestMatchers("/api/rsvp/**").hasRole("ATTENDEE")
-                        .requestMatchers("/api/organizer/**").hasRole("ORGANIZER")
-
-                        // All other requests require authentication
                         .anyRequest().authenticated()
                 )
-
-                // Add JWT filter before UsernamePasswordAuthenticationFilter
+                .exceptionHandling(exh -> exh
+                        .authenticationEntryPoint((request, response, ex) -> {
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication required");
+                        })
+                        .accessDeniedHandler((request, response, ex) -> {
+                            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
+                        })
+                )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -77,7 +76,6 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
-    // Configure CORS if needed
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

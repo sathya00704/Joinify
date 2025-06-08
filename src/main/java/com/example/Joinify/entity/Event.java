@@ -1,5 +1,6 @@
 package com.example.Joinify.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 //import jakarta.validation.constraints.Future;
 //import jakarta.validation.constraints.FutureOrPresent;
@@ -33,6 +34,7 @@ public class Event {
     private User organizer;
 
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<RSVP> rsvps = new ArrayList<>();
 
     // Constructors, Getters, Setters

@@ -79,4 +79,5 @@ public class AuthController {
         boolean exists = authService.existsByEmail(email);
         return ResponseEntity.ok(exists);
     }
+
 }

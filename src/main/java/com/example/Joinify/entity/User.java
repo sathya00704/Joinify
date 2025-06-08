@@ -1,5 +1,6 @@
 package com.example.Joinify.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,9 +27,11 @@ public class User {
     private UserRole role;
 
     @OneToMany(mappedBy = "organizer", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Event> organizedEvents = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<RSVP> rsvps = new ArrayList<>();
 
     // Constructors, Getters, Setters

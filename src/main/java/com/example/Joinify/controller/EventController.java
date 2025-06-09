@@ -78,7 +78,7 @@ public class EventController {
             Event event = eventService.getEventById(id);
             return ResponseEntity.ok(event);
         } catch (ResourceNotFoundException e) {
-            return ResponseEntity.notFound().build();
+            throw e;
         }
     }
 

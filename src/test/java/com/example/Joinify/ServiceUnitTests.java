@@ -74,7 +74,7 @@ public class ServiceUnitTests {
         assertThat(event.getTitle()).isEqualTo("Test Event");
 
         // Test event retrieval
-        assertThat(eventService.getEventById(event.getId())).isPresent();
+        assertThat(eventService.getEventById(event.getId())).isNotNull();
 
         List<Event> upcomingEvents = eventService.getUpcomingEvents();
         assertThat(upcomingEvents).contains(event);

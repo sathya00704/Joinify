@@ -4,6 +4,8 @@ import com.example.Joinify.dto.LoginRequest;
 import com.example.Joinify.dto.LoginResponse;
 import com.example.Joinify.dto.RegisterRequest;
 import com.example.Joinify.dto.RegisterResponse;
+import com.example.Joinify.exception.BadRequestException;
+import com.example.Joinify.exception.DuplicateResourceException;
 import com.example.Joinify.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,25 +24,21 @@ public class AuthController {
     // User Registration Endpoint
     @PostMapping("/register")
     public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest registerRequest) {
-        try {
-            RegisterResponse response = authService.registerUser(registerRequest);
+        RegisterResponse response = authService.registerUser(registerRequest);
 
-            if (response.isSuccess()) {
-                return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        if (response.isSuccess()) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } else {
+            // Convert failure response to appropriate exception
+            if (response.getMessage().contains("already exists")) {
+                throw new DuplicateResourceException(response.getMessage());
             } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+                throw new BadRequestException(response.getMessage());
             }
-
-        } catch (Exception e) {
-            RegisterResponse errorResponse = new RegisterResponse(
-                    "Registration failed: " + e.getMessage(),
-                    null,
-                    null,
-                    false
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
+
 
     // User Login Endpoint
     @PostMapping("/login")

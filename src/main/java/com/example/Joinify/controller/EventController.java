@@ -2,6 +2,7 @@ package com.example.Joinify.controller;
 
 import com.example.Joinify.entity.Event;
 import com.example.Joinify.entity.User;
+import com.example.Joinify.exception.ResourceNotFoundException;
 import com.example.Joinify.service.EventService;
 import com.example.Joinify.service.UserService;
 import jakarta.validation.Valid;
@@ -26,6 +27,21 @@ public class EventController {
 
     @Autowired
     private UserService userService;
+
+    // Response class for event capacity
+    public static class EventCapacityResponse {
+        public final int maxCapacity;
+        public final long confirmedAttendees;
+        public final int availableSpots;
+        public final boolean atCapacity;
+
+        public EventCapacityResponse(int maxCapacity, long confirmedAttendees, int availableSpots, boolean atCapacity) {
+            this.maxCapacity = maxCapacity;
+            this.confirmedAttendees = confirmedAttendees;
+            this.availableSpots = availableSpots;
+            this.atCapacity = atCapacity;
+        }
+    }
 
     // Get all events (public access)
     @GetMapping
@@ -58,10 +74,10 @@ public class EventController {
     // Get event by ID
     @GetMapping("/{id}")
     public ResponseEntity<Event> getEventById(@PathVariable Long id) {
-        Optional<Event> event = eventService.getEventById(id);
-        if (event.isPresent()) {
-            return ResponseEntity.ok(event.get());
-        } else {
+        try {
+            Event event = eventService.getEventById(id);
+            return ResponseEntity.ok(event);
+        } catch (ResourceNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
     }
@@ -69,15 +85,23 @@ public class EventController {
     // Search events by title
     @GetMapping("/search/title")
     public ResponseEntity<List<Event>> searchEventsByTitle(@RequestParam String keyword) {
-        List<Event> events = eventService.searchEventsByTitle(keyword);
-        return ResponseEntity.ok(events);
+        try {
+            List<Event> events = eventService.searchEventsByTitle(keyword);
+            return ResponseEntity.ok(events);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     // Search events by location
     @GetMapping("/search/location")
     public ResponseEntity<List<Event>> searchEventsByLocation(@RequestParam String location) {
-        List<Event> events = eventService.searchEventsByLocation(location);
-        return ResponseEntity.ok(events);
+        try {
+            List<Event> events = eventService.searchEventsByLocation(location);
+            return ResponseEntity.ok(events);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     // Get events between dates
@@ -126,13 +150,8 @@ public class EventController {
                                              @Valid @RequestBody Event updatedEvent,
                                              Authentication authentication) {
         try {
-            // Check if event exists
-            Optional<Event> existingEventOpt = eventService.getEventById(id);
-            if (existingEventOpt.isEmpty()) {
-                return ResponseEntity.notFound().build();
-            }
-
-            Event existingEvent = existingEventOpt.get();
+            // Check if event exists and get it
+            Event existingEvent = eventService.getEventById(id);
             String username = authentication.getName();
 
             // Check if current user is the organizer of this event
@@ -143,6 +162,8 @@ public class EventController {
             Event savedEvent = eventService.updateEvent(id, updatedEvent);
             return ResponseEntity.ok(savedEvent);
 
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         } catch (Exception e) {
@@ -155,13 +176,8 @@ public class EventController {
     @PreAuthorize("hasRole('ORGANIZER')")
     public ResponseEntity<Void> deleteEvent(@PathVariable Long id, Authentication authentication) {
         try {
-            // Check if event exists
-            Optional<Event> existingEventOpt = eventService.getEventById(id);
-            if (existingEventOpt.isEmpty()) {
-                return ResponseEntity.notFound().build();
-            }
-
-            Event existingEvent = existingEventOpt.get();
+            // Check if event exists and get it
+            Event existingEvent = eventService.getEventById(id);
             String username = authentication.getName();
 
             // Check if current user is the organizer of this event
@@ -172,6 +188,8 @@ public class EventController {
             eventService.deleteEvent(id);
             return ResponseEntity.noContent().build();
 
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -180,8 +198,12 @@ public class EventController {
     // Get events by organizer
     @GetMapping("/organizer/{organizerId}")
     public ResponseEntity<List<Event>> getEventsByOrganizer(@PathVariable Long organizerId) {
-        List<Event> events = eventService.getEventsByOrganizerId(organizerId);
-        return ResponseEntity.ok(events);
+        try {
+            List<Event> events = eventService.getEventsByOrganizerId(organizerId);
+            return ResponseEntity.ok(events);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     // Get my events (current organizer)
@@ -195,8 +217,12 @@ public class EventController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        List<Event> events = eventService.getEventsByOrganizerId(organizer.get().getId());
-        return ResponseEntity.ok(events);
+        try {
+            List<Event> events = eventService.getEventsByOrganizerId(organizer.get().getId());
+            return ResponseEntity.ok(events);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     // Get upcoming events by organizer
@@ -210,8 +236,12 @@ public class EventController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        List<Event> events = eventService.getUpcomingEventsByOrganizer(organizer.get().getId());
-        return ResponseEntity.ok(events);
+        try {
+            List<Event> events = eventService.getUpcomingEventsByOrganizer(organizer.get().getId());
+            return ResponseEntity.ok(events);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     // Get past events by organizer
@@ -225,45 +255,36 @@ public class EventController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        List<Event> events = eventService.getPastEventsByOrganizer(organizer.get().getId());
-        return ResponseEntity.ok(events);
-    }
-
-    // Create this as a static inner class or separate class
-    public static class EventCapacityResponse {
-        public final int maxCapacity;
-        public final long confirmedAttendees;
-        public final int availableSpots;
-        public final boolean atCapacity;
-
-        public EventCapacityResponse(int maxCapacity, long confirmedAttendees, int availableSpots, boolean atCapacity) {
-            this.maxCapacity = maxCapacity;
-            this.confirmedAttendees = confirmedAttendees;
-            this.availableSpots = availableSpots;
-            this.atCapacity = atCapacity;
+        try {
+            List<Event> events = eventService.getPastEventsByOrganizer(organizer.get().getId());
+            return ResponseEntity.ok(events);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
         }
     }
 
-    // Then use it in your method:
+    // Get event capacity info
     @GetMapping("/{id}/capacity")
     public ResponseEntity<EventCapacityResponse> getEventCapacityInfo(@PathVariable Long id) {
-        Optional<Event> eventOpt = eventService.getEventById(id);
-        if (eventOpt.isEmpty()) {
+        try {
+            Event event = eventService.getEventById(id);
+            long confirmedCount = eventService.getConfirmedAttendeeCount(id);
+            int availableSpots = eventService.getAvailableSpots(id);
+            boolean isAtCapacity = eventService.isEventAtCapacity(id);
+
+            EventCapacityResponse response = new EventCapacityResponse(
+                    event.getMaxCapacity(),
+                    confirmedCount,
+                    availableSpots,
+                    isAtCapacity
+            );
+
+            return ResponseEntity.ok(response);
+
+        } catch (ResourceNotFoundException e) {
             return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-
-        Event event = eventOpt.get();
-        long confirmedCount = eventService.getConfirmedAttendeeCount(id);
-        int availableSpots = eventService.getAvailableSpots(id);
-        boolean isAtCapacity = eventService.isEventAtCapacity(id);
-
-        EventCapacityResponse response = new EventCapacityResponse(
-                event.getMaxCapacity(),
-                confirmedCount,
-                availableSpots,
-                isAtCapacity
-        );
-
-        return ResponseEntity.ok(response);
     }
 }

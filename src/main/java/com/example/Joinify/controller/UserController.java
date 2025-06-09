@@ -2,6 +2,7 @@ package com.example.Joinify.controller;
 
 import com.example.Joinify.entity.User;
 import com.example.Joinify.entity.UserRole;
+import com.example.Joinify.exception.ResourceNotFoundException;
 import com.example.Joinify.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -107,15 +108,15 @@ public class UserController {
     // Get user by ID (public access for basic info)
     @GetMapping("/{id}")
     public ResponseEntity<User> getUserById(@PathVariable Long id) {
-        Optional<User> user = userService.getUserById(id);
-        if (user.isPresent()) {
+        try {
+            User user = userService.getUserById(id);
             // Remove sensitive information
-            User publicUser = user.get();
-            publicUser.setPassword(null);
-            return ResponseEntity.ok(publicUser);
-        } else {
+            user.setPassword(null);
+            return ResponseEntity.ok(user);
+        } catch (ResourceNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
+
     }
 
     // Get all users (admin functionality - can be restricted)

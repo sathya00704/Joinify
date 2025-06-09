@@ -2,6 +2,10 @@ package com.example.Joinify.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,15 +17,21 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "Username is required")
+    @Size(min = 3, max = 20, message = "Username must be between 3 and 20 characters")
     @Column(nullable = false, unique = true)
     private String username;
 
+    @NotBlank(message = "Email is required")
+    @Email(message = "Please provide a valid email")
     @Column(nullable = false, unique = true)
     private String email;
 
+    @NotBlank(message = "Password is required")
     @Column(nullable = false)
     private String password;
 
+    @NotNull(message = "Role is required")
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserRole role;
@@ -34,7 +44,8 @@ public class User {
     @JsonIgnore
     private List<RSVP> rsvps = new ArrayList<>();
 
-    // Constructors, Getters, Setters
+    // Constructors
+    public User() {}
 
     public User(Long id, String username, String email, String password, UserRole role, List<Event> organizedEvents, List<RSVP> rsvps) {
         this.id = id;
@@ -42,15 +53,11 @@ public class User {
         this.email = email;
         this.password = password;
         this.role = role;
-        this.organizedEvents = organizedEvents;
-        this.rsvps = rsvps;
+        this.organizedEvents = organizedEvents != null ? organizedEvents : new ArrayList<>();
+        this.rsvps = rsvps != null ? rsvps : new ArrayList<>();
     }
 
-    // Default Constructor (Required by JPA)
-    public User() {
-
-    }
-
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -107,5 +114,3 @@ public class User {
         this.rsvps = rsvps;
     }
 }
-
-

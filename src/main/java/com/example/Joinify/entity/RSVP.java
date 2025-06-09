@@ -2,6 +2,7 @@ package com.example.Joinify.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 @Entity
@@ -11,21 +12,25 @@ public class RSVP {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotNull(message = "User is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @NotNull(message = "Event is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JsonIgnore
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
+    @NotNull(message = "RSVP status is required")
     @Enumerated(EnumType.STRING)
     private RSVPStatus status;
 
+    @NotNull(message = "RSVP date is required")
     private LocalDateTime rsvpDate;
 
-    // Constructors, Getters, Setters
+    // Constructors
     public RSVP() {
         this.rsvpDate = LocalDateTime.now();
         this.status = RSVPStatus.PENDING;
@@ -36,9 +41,10 @@ public class RSVP {
         this.user = user;
         this.event = event;
         this.status = status;
-        this.rsvpDate = rsvpDate;
+        this.rsvpDate = rsvpDate != null ? rsvpDate : LocalDateTime.now();
     }
 
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -79,5 +85,3 @@ public class RSVP {
         this.rsvpDate = rsvpDate;
     }
 }
-
-

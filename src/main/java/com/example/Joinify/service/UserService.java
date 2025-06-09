@@ -3,6 +3,8 @@ package com.example.Joinify.service;
 import com.example.Joinify.dto.RegisterRequest;
 import com.example.Joinify.entity.User;
 import com.example.Joinify.entity.UserRole;
+import com.example.Joinify.exception.DuplicateResourceException;
+import com.example.Joinify.exception.ResourceNotFoundException;
 import com.example.Joinify.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,10 +25,10 @@ public class UserService {
     // Register a new user
     public User registerUser(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new IllegalArgumentException("Username already exists");
+            throw new DuplicateResourceException("Username '" + request.getUsername() + "' already exists");
         }
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("Email already exists");
+            throw new DuplicateResourceException("Email '" + request.getEmail() + "' already exists");
         }
 
         User user = new User();
@@ -38,14 +40,10 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    // Authenticate user (for additional validation beyond Spring Security)
-    public Optional<User> authenticateUser(String username) {
-        return userRepository.findByUsername(username);
-    }
-
     // Get user by ID
-    public Optional<User> getUserById(Long id) {
-        return userRepository.findById(id);
+    public User getUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
     }
 
     // Get user by username
@@ -81,19 +79,23 @@ public class UserService {
     // Update user details
     public User updateUser(User user) {
         if (!userRepository.existsById(user.getId())) {
-            throw new IllegalArgumentException("User not found");
+            throw new ResourceNotFoundException("User", "id", user.getId());
         }
+
+        // If password is null, preserve existing password
+        if (user.getPassword() == null) {
+            Optional<User> existingUser = userRepository.findById(user.getId());
+            if (existingUser.isPresent()) {
+                user.setPassword(existingUser.get().getPassword());
+            }
+        }
+
         return userRepository.save(user);
     }
 
     // Update user password
     public User updateUserPassword(Long userId, String newPassword) {
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
-            throw new IllegalArgumentException("User not found");
-        }
-
-        User user = userOpt.get();
+        User user = getUserById(userId);
         user.setPassword(passwordEncoder.encode(newPassword));
         return userRepository.save(user);
     }
@@ -101,7 +103,7 @@ public class UserService {
     // Delete user by ID
     public void deleteUser(Long id) {
         if (!userRepository.existsById(id)) {
-            throw new IllegalArgumentException("User not found");
+            throw new ResourceNotFoundException("User", "id", id);
         }
         userRepository.deleteById(id);
     }

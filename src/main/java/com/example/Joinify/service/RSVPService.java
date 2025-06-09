@@ -4,6 +4,10 @@ import com.example.Joinify.entity.Event;
 import com.example.Joinify.entity.RSVP;
 import com.example.Joinify.entity.RSVPStatus;
 import com.example.Joinify.entity.User;
+import com.example.Joinify.exception.BadRequestException;
+import com.example.Joinify.exception.DuplicateResourceException;
+import com.example.Joinify.exception.EventCapacityExceededException;
+import com.example.Joinify.exception.ResourceNotFoundException;
 import com.example.Joinify.repository.EventRepository;
 import com.example.Joinify.repository.RSVPRepository;
 import com.example.Joinify.repository.UserRepository;
@@ -28,33 +32,33 @@ public class RSVPService {
 
     // Create RSVP
     public RSVP createRSVP(Long userId, Long eventId) {
-        Optional<User> userOpt = userRepository.findById(userId);
-        Optional<Event> eventOpt = eventRepository.findById(eventId);
-
-        if (userOpt.isEmpty()) {
-            throw new IllegalArgumentException("User not found");
+        if (userId == null) {
+            throw new BadRequestException("User ID cannot be null");
         }
-        if (eventOpt.isEmpty()) {
-            throw new IllegalArgumentException("Event not found");
+        if (eventId == null) {
+            throw new BadRequestException("Event ID cannot be null");
         }
 
-        Event event = eventOpt.get();
-        User user = userOpt.get();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
 
         // Check if event is in the past
         if (event.getDateTime().isBefore(LocalDateTime.now())) {
-            throw new IllegalStateException("Cannot RSVP to past events");
+            throw new BadRequestException("Cannot RSVP to past events");
         }
 
         // Check capacity
         long confirmedCount = rsvpRepository.countConfirmedRSVPsByEventId(eventId);
         if (confirmedCount >= event.getMaxCapacity()) {
-            throw new IllegalStateException("Event is at full capacity");
+            throw new EventCapacityExceededException("Event '" + event.getTitle() + "' is at full capacity");
         }
 
         // Check if RSVP already exists
         if (rsvpRepository.existsByUserIdAndEventId(userId, eventId)) {
-            throw new IllegalStateException("User has already RSVP'd to this event");
+            throw new DuplicateResourceException("User has already RSVP'd to this event");
         }
 
         RSVP rsvp = new RSVP();
@@ -68,109 +72,169 @@ public class RSVPService {
 
     // Update RSVP status
     public RSVP updateRSVPStatus(Long userId, Long eventId, RSVPStatus status) {
-        Optional<RSVP> rsvpOpt = rsvpRepository.findByUserIdAndEventId(userId, eventId);
-        if (rsvpOpt.isEmpty()) {
-            throw new IllegalArgumentException("RSVP not found for user and event");
+        if (userId == null) {
+            throw new BadRequestException("User ID cannot be null");
+        }
+        if (eventId == null) {
+            throw new BadRequestException("Event ID cannot be null");
+        }
+        if (status == null) {
+            throw new BadRequestException("RSVP status cannot be null");
         }
 
-        RSVP rsvp = rsvpOpt.get();
+        RSVP rsvp = rsvpRepository.findByUserIdAndEventId(userId, eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("RSVP not found for user and event"));
+
         rsvp.setStatus(status);
         return rsvpRepository.save(rsvp);
     }
 
     // Cancel RSVP (delete it)
     public void cancelRSVP(Long userId, Long eventId) {
-        Optional<RSVP> rsvpOpt = rsvpRepository.findByUserIdAndEventId(userId, eventId);
-        if (rsvpOpt.isEmpty()) {
-            throw new IllegalArgumentException("RSVP not found for user and event");
+        if (userId == null) {
+            throw new BadRequestException("User ID cannot be null");
         }
-        rsvpRepository.delete(rsvpOpt.get());
+        if (eventId == null) {
+            throw new BadRequestException("Event ID cannot be null");
+        }
+
+        RSVP rsvp = rsvpRepository.findByUserIdAndEventId(userId, eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("RSVP not found for user and event"));
+
+        rsvpRepository.delete(rsvp);
     }
 
     // Get RSVP by user and event
     public Optional<RSVP> getRSVP(Long userId, Long eventId) {
+        if (userId == null || eventId == null) {
+            throw new BadRequestException("User ID and Event ID cannot be null");
+        }
         return rsvpRepository.findByUserIdAndEventId(userId, eventId);
     }
 
     // Get RSVP status for user and event
     public Optional<RSVPStatus> getRSVPStatus(Long userId, Long eventId) {
+        if (userId == null || eventId == null) {
+            throw new BadRequestException("User ID and Event ID cannot be null");
+        }
         return rsvpRepository.findRSVPStatus(userId, eventId);
     }
 
     // Check if user has RSVP'd to event
     public boolean hasUserRSVPd(Long userId, Long eventId) {
+        if (userId == null || eventId == null) {
+            throw new BadRequestException("User ID and Event ID cannot be null");
+        }
         return rsvpRepository.existsByUserIdAndEventId(userId, eventId);
     }
 
     // Get all RSVPs for an event
     public List<RSVP> getRSVPsForEvent(Long eventId) {
+        if (eventId == null) {
+            throw new BadRequestException("Event ID cannot be null");
+        }
         return rsvpRepository.findByEventId(eventId);
     }
 
     // Get confirmed attendees for an event
     public List<User> getConfirmedAttendeesForEvent(Long eventId) {
+        if (eventId == null) {
+            throw new BadRequestException("Event ID cannot be null");
+        }
         return rsvpRepository.findConfirmedAttendeesByEventId(eventId);
     }
 
     // Get pending RSVPs for an event
     public List<RSVP> getPendingRSVPsForEvent(Long eventId) {
+        if (eventId == null) {
+            throw new BadRequestException("Event ID cannot be null");
+        }
         return rsvpRepository.findPendingRSVPsByEventId(eventId);
     }
 
     // Check if event is at capacity
     public boolean isEventAtCapacity(Long eventId) {
+        if (eventId == null) {
+            throw new BadRequestException("Event ID cannot be null");
+        }
         return rsvpRepository.isEventAtCapacity(eventId);
     }
 
     // Get confirmed RSVP count for an event
     public long getConfirmedRSVPCount(Long eventId) {
+        if (eventId == null) {
+            throw new BadRequestException("Event ID cannot be null");
+        }
         return rsvpRepository.countConfirmedRSVPsByEventId(eventId);
     }
 
     // Get total RSVP count for an event
     public long getTotalRSVPCount(Long eventId) {
+        if (eventId == null) {
+            throw new BadRequestException("Event ID cannot be null");
+        }
         return rsvpRepository.countByEventId(eventId);
     }
 
     // Get all RSVPs for a user
     public List<RSVP> getRSVPsForUser(Long userId) {
+        if (userId == null) {
+            throw new BadRequestException("User ID cannot be null");
+        }
         return rsvpRepository.findByUserId(userId);
     }
 
     // Get upcoming RSVPs for a user
     public List<RSVP> getUpcomingRSVPsForUser(Long userId) {
+        if (userId == null) {
+            throw new BadRequestException("User ID cannot be null");
+        }
         return rsvpRepository.findUserUpcomingRSVPs(userId, LocalDateTime.now());
     }
 
     // Get past RSVPs for a user
     public List<RSVP> getPastRSVPsForUser(Long userId) {
+        if (userId == null) {
+            throw new BadRequestException("User ID cannot be null");
+        }
         return rsvpRepository.findUserPastRSVPs(userId, LocalDateTime.now());
     }
 
     // Get RSVPs by status
     public List<RSVP> getRSVPsByStatus(RSVPStatus status) {
+        if (status == null) {
+            throw new BadRequestException("RSVP status cannot be null");
+        }
         return rsvpRepository.findByStatus(status);
     }
 
     // Get available spots for an event
     public int getAvailableSpots(Long eventId) {
-        Optional<Event> eventOpt = eventRepository.findById(eventId);
-        if (eventOpt.isEmpty()) {
-            return 0;
+        if (eventId == null) {
+            throw new BadRequestException("Event ID cannot be null");
         }
 
-        Event event = eventOpt.get();
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
+
         long confirmedCount = rsvpRepository.countConfirmedRSVPsByEventId(eventId);
         return (int) Math.max(0, event.getMaxCapacity() - confirmedCount);
     }
 
     // Count RSVPs by user
     public long countRSVPsByUser(Long userId) {
+        if (userId == null) {
+            throw new BadRequestException("User ID cannot be null");
+        }
         return rsvpRepository.countByUserId(userId);
     }
 
     // Bulk confirm pending RSVPs for an event
     public List<RSVP> confirmPendingRSVPs(Long eventId) {
+        if (eventId == null) {
+            throw new BadRequestException("Event ID cannot be null");
+        }
+
         List<RSVP> pendingRSVPs = rsvpRepository.findPendingRSVPsByEventId(eventId);
 
         for (RSVP rsvp : pendingRSVPs) {

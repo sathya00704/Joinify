@@ -40,9 +40,11 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/hello.html",
+                                "/index.html",
                                 "/test.html",
                                 "/css/**",
                                 "/js/**",
+                                "/static/**",
                                 "/images/**",
                                 "/api/events",
                                 "/api/events/**",        // Allow all event endpoints publicly for testing

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Joinify - Event Management System</title>
+  <link rel="stylesheet" href="css/homestylings.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+<!-- Navigation Header -->
+<nav class="navbar">
+  <div class="nav-container">
+    <div class="nav-logo">
+      <img src="images/game-icons_glass-celebration.svg" alt="Joinify Logo" class="nav-logo-img">
+      <span>Joinify</span>
+    </div>
+    <div class="nav-menu" id="nav-menu">
+      <a href="#home" class="nav-link">Home</a>
+      <a href="#events" class="nav-link">Events</a>
+      <a href="#about" class="nav-link">About</a>
+      <a href="#contact" class="nav-link">Contact</a>
+    </div>
+    <div class="nav-auth">
+      <button class="btn btn-outline" onclick="showLogin()">Login</button>
+      <button class="btn btn-primary" onclick="showRegister()">Sign Up</button>
+    </div>
+    <div class="nav-toggle" id="nav-toggle">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero Section -->
+<section id="home" class="hero">
+  <div class="hero-container">
+    <div class="hero-content">
+      <h1 class="hero-title">
+        <span>Discover</span>
+        <span class="separator">|</span>
+        <span>Connect</span>
+        <span class="separator">|</span>
+        <span>Experience</span>
+        <span class="separator">|</span>
+        <span>Celebrate</span>
+      </h1>
+      <p class="hero-subtitle">
+        Welcome to Joinify - a smart and secure Event management portal for organizers and attendees.
+        Whether you're hosting or attending, Joinify helps you streamline every part of the event experience.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section class="features">
+  <div class="container">
+    <h2 class="section-title">Why Choose Joinify?</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="fas fa-users-cog"></i>
+        </div>
+        <h3>Role-based Access</h3>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="fas fa-tachometer-alt"></i>
+        </div>
+        <h3>Smart Event Dashboard</h3>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h3>Hassle-Free RSVPs</h3>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="fas fa-bell"></i>
+        </div>
+        <h3>Reminders That Matter</h3>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <h3>Secure by Design</h3>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="fas fa-chart-line"></i>
+        </div>
+        <h3>Live Event Insights</h3>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Events Preview Section -->
+<section id="events" class="events-preview">
+  <div class="container">
+    <h2 class="section-title">Upcoming Events</h2>
+    <div class="events-grid" id="events-grid">
+      <!-- Events will be loaded dynamically -->
+      <div class="event-card-skeleton">
+        <div class="skeleton-image"></div>
+        <div class="skeleton-content">
+          <div class="skeleton-title"></div>
+          <div class="skeleton-text"></div>
+          <div class="skeleton-text"></div>
+        </div>
+      </div>
+      <div class="event-card-skeleton">
+        <div class="skeleton-image"></div>
+        <div class="skeleton-content">
+          <div class="skeleton-title"></div>
+          <div class="skeleton-text"></div>
+          <div class="skeleton-text"></div>
+        </div>
+      </div>
+      <div class="event-card-skeleton">
+        <div class="skeleton-image"></div>
+        <div class="skeleton-content">
+          <div class="skeleton-title"></div>
+          <div class="skeleton-text"></div>
+          <div class="skeleton-text"></div>
+        </div>
+      </div>
+    </div>
+    <div class="text-center">
+      <button class="btn btn-outline" onclick="viewAllEvents()">
+        View All Events <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-content">
+      <div class="footer-section">
+        <h4>CONTACT</h4>
+        <p>JOINIFY HEADQUARTERS<br>
+          Block-8, 7th Floor<br>
+          ABC IT Park, Indira Nagar<br>
+          Bengaluru, Karnataka - 560038</p>
+      </div>
+      <div class="footer-section">
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="#home">Home</a></li>
+          <li><a href="#events">Events</a></li>
+          <li><a href="#about">About</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-section">
+        <h4>Connect</h4>
+        <div class="social-links">
+          <a href="#"><i class="fab fa-facebook"></i></a>
+          <a href="#"><i class="fab fa-twitter"></i></a>
+          <a href="#"><i class="fab fa-instagram"></i></a>
+          <a href="#"><i class="fab fa-linkedin"></i></a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2025 Joinify. All rights reserved.</p>
+    </div>
+  </div>
+</footer>
+
+
+<!-- Login Modal -->
+<div id="login-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Welcome Back</h2>
+      <span class="close" onclick="closeModal('login-modal')">&times;</span>
+    </div>
+    <form id="login-form" class="auth-form">
+      <div class="form-group">
+        <label for="login-username">Username</label>
+        <input type="text" id="login-username" name="username" required>
+      </div>
+      <div class="form-group">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" name="password" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+      <div class="auth-switch">
+        Don't have an account?
+        <a href="#" onclick="switchToRegister()">Sign up here</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Register Modal -->
+<div id="register-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Join Joinify</h2>
+      <span class="close" onclick="closeModal('register-modal')">&times;</span>
+    </div>
+    <form id="register-form" class="auth-form">
+      <div class="form-group">
+        <label for="register-username">Username</label>
+        <input type="text" id="register-username" name="username" required>
+      </div>
+      <div class="form-group">
+        <label for="register-email">Email</label>
+        <input type="email" id="register-email" name="email" required>
+      </div>
+      <div class="form-group">
+        <label for="register-password">Password</label>
+        <input type="password" id="register-password" name="password" required>
+      </div>
+      <div class="form-group">
+        <label for="register-role">I want to</label>
+        <select id="register-role" name="role" required>
+          <option value="">Select an option</option>
+          <option value="ATTENDEE">Attend Events</option>
+          <option value="ORGANIZER">Organize Events</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+      <div class="auth-switch">
+        Already have an account?
+        <a href="#" onclick="switchToLogin()">Sign in here</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loading-overlay" class="loading-overlay">
+  <div class="loading-spinner">
+    <i class="fas fa-spinner fa-spin"></i>
+    <p>Loading...</p>
+  </div>
+</div>
+
+<!-- Toast Notifications -->
+<div id="toast-container" class="toast-container"></div>
+
+</body>
+</html>

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizer Dashboard - Joinify</title>
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css" rel="stylesheet">
+</head>
+<body>
+<!-- Navigation -->
+<nav class="dashboard-nav">
+    <div class="nav-brand">
+        <i class="fas fa-calendar-alt"></i>
+        <span>Joinify</span>
+    </div>
+    <div class="nav-user">
+        <span id="user-name">Loading...</span>
+        <div class="user-dropdown">
+            <button class="dropdown-btn">
+                <i class="fas fa-user-circle"></i>
+                <i class="fas fa-chevron-down"></i>
+            </button>
+            <div class="dropdown-content">
+                <a href="#" onclick="editProfile()"><i class="fas fa-edit"></i> Edit Profile</a>
+                <a href="#" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+    <div class="sidebar-menu">
+        <a href="#overview" class="menu-item active" onclick="showSection('overview')">
+            <i class="fas fa-tachometer-alt"></i>
+            <span>Overview</span>
+        </a>
+        <a href="#events" class="menu-item" onclick="showSection('events')">
+            <i class="fas fa-calendar-check"></i>
+            <span>My Events</span>
+        </a>
+        <a href="#create-event" class="menu-item" onclick="showSection('create-event')">
+            <i class="fas fa-plus-circle"></i>
+            <span>Create Event</span>
+        </a>
+        <a href="#attendees" class="menu-item" onclick="showSection('attendees')">
+            <i class="fas fa-users"></i>
+            <span>Attendees</span>
+        </a>
+        <a href="#analytics" class="menu-item" onclick="showSection('analytics')">
+            <i class="fas fa-chart-line"></i>
+            <span>Analytics</span>
+        </a>
+    </div>
+</aside>
+
+<!-- Main Content -->
+<main class="main-content">
+    <!-- Overview Section -->
+    <section id="overview-section" class="content-section active">
+        <div class="section-header">
+            <h1>Dashboard Overview</h1>
+            <p>Welcome back! Here's what's happening with your events.</p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon blue">
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="total-events">0</h3>
+                    <p>Total Events</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="upcoming-events">0</h3>
+                    <p>Upcoming Events</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon orange">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="total-attendees">0</h3>
+                    <p>Total Attendees</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon purple">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="avg-attendance">0%</h3>
+                    <p>Avg Attendance</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <h2>Quick Actions</h2>
+            <div class="action-buttons">
+                <button class="action-btn primary" onclick="showSection('create-event')">
+                    <i class="fas fa-plus"></i>
+                    Create New Event
+                </button>
+                <button class="action-btn secondary" onclick="showSection('events')">
+                    <i class="fas fa-list"></i>
+                    View All Events
+                </button>
+                <button class="action-btn tertiary" onclick="showSection('analytics')">
+                    <i class="fas fa-chart-bar"></i>
+                    View Analytics
+                </button>
+            </div>
+        </div>
+
+        <!-- Recent Events -->
+        <div class="recent-events">
+            <h2>Recent Events</h2>
+            <div class="events-table-container">
+                <table class="events-table">
+                    <thead>
+                    <tr>
+                        <th>Event Name</th>
+                        <th>Date</th>
+                        <th>Attendees</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody id="recent-events-tbody">
+                    <!-- Events will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Events Section -->
+    <section id="events-section" class="content-section">
+        <div class="section-header">
+            <h1>My Events</h1>
+            <button class="btn btn-primary" onclick="showSection('create-event')">
+                <i class="fas fa-plus"></i> Create Event
+            </button>
+        </div>
+
+        <!-- Event Filters -->
+        <div class="event-filters">
+            <div class="filter-group">
+                <button class="filter-btn active" data-filter="all">All Events</button>
+                <button class="filter-btn" data-filter="upcoming">Upcoming</button>
+                <button class="filter-btn" data-filter="past">Past</button>
+            </div>
+            <div class="search-group">
+                <input type="text" id="event-search" placeholder="Search events...">
+                <i class="fas fa-search"></i>
+            </div>
+        </div>
+
+        <!-- Events Grid -->
+        <div class="events-grid" id="events-grid">
+            <!-- Events will be loaded here -->
+        </div>
+    </section>
+
+    <!-- Create Event Section -->
+    <section id="create-event-section" class="content-section">
+        <div class="section-header">
+            <h1>Create New Event</h1>
+            <p>Fill in the details to create your event</p>
+        </div>
+
+        <form id="create-event-form" class="event-form">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="event-title">Event Title *</label>
+                    <input type="text" id="event-title" name="title" required>
+                </div>
+                <div class="form-group">
+                    <label for="event-location">Location *</label>
+                    <input type="text" id="event-location" name="location" required>
+                </div>
+                <div class="form-group">
+                    <label for="event-date">Date *</label>
+                    <input type="datetime-local" id="event-date" name="dateTime" required>
+                </div>
+                <div class="form-group">
+                    <label for="event-capacity">Max Capacity *</label>
+                    <input type="number" id="event-capacity" name="maxCapacity" min="1" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="event-description">Description</label>
+                <textarea id="event-description" name="description" rows="4"></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="clearForm('create-event-form')">
+                    Clear
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Create Event
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Attendees Section -->
+    <section id="attendees-section" class="content-section">
+        <div class="section-header">
+            <h1>Event Attendees</h1>
+            <select id="attendee-event-select">
+                <option value="">Select an event</option>
+            </select>
+        </div>
+
+        <div class="attendees-container" id="attendees-container">
+            <p class="no-data">Select an event to view attendees</p>
+        </div>
+    </section>
+
+    <!-- Analytics Section -->
+    <section id="analytics-section" class="content-section">
+        <div class="section-header">
+            <h1>Analytics</h1>
+            <p>Insights into your event performance</p>
+        </div>
+
+        <div class="analytics-grid">
+            <div class="chart-container">
+                <h3>Event Attendance Over Time</h3>
+                <canvas id="attendance-chart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Events by Status</h3>
+                <canvas id="status-chart"></canvas>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- Loading Overlay -->
+<div id="loading-overlay" class="loading-overlay">
+    <div class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Loading...</p>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container" class="toast-container"></div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/dashboard-organizer.js"></script>
+</body>
+</html>

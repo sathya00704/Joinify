@@ -41,6 +41,8 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/hello.html",
                                 "/index.html",
+                                "/dashboard-attendee.html",
+                                "/dashboard-organizer.html",
                                 "/test.html",
                                 "/css/**",
                                 "/js/**",

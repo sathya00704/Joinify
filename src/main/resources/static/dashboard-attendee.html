@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendee Dashboard - Joinify</title>
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+<!-- Navigation -->
+<nav class="dashboard-nav">
+  <div class="nav-brand">
+    <i class="fas fa-calendar-alt"></i>
+    <span>Joinify</span>
+  </div>
+  <div class="nav-user">
+    <span id="user-name">Loading...</span>
+    <div class="user-dropdown">
+      <button class="dropdown-btn">
+        <i class="fas fa-user-circle"></i>
+        <i class="fas fa-chevron-down"></i>
+      </button>
+      <div class="dropdown-content">
+        <a href="#" onclick="editProfile()"><i class="fas fa-edit"></i> Edit Profile</a>
+        <a href="#" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-menu">
+    <a href="#overview" class="menu-item active" onclick="showSection('overview')">
+      <i class="fas fa-tachometer-alt"></i>
+      <span>Overview</span>
+    </a>
+    <a href="#discover" class="menu-item" onclick="showSection('discover')">
+      <i class="fas fa-search"></i>
+      <span>Discover Events</span>
+    </a>
+    <a href="#my-events" class="menu-item" onclick="showSection('my-events')">
+      <i class="fas fa-calendar-check"></i>
+      <span>My Events</span>
+    </a>
+    <a href="#history" class="menu-item" onclick="showSection('history')">
+      <i class="fas fa-history"></i>
+      <span>Event History</span>
+    </a>
+  </div>
+</aside>
+
+<!-- Main Content -->
+<main class="main-content">
+  <!-- Overview Section -->
+  <section id="overview-section" class="content-section active">
+    <div class="section-header">
+      <h1>Welcome Back!</h1>
+      <p>Here's an overview of your event activities</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon blue">
+          <i class="fas fa-calendar-check"></i>
+        </div>
+        <div class="stat-info">
+          <h3 id="upcoming-rsvps">0</h3>
+          <p>Upcoming Events</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stat-info">
+          <h3 id="total-rsvps">0</h3>
+          <p>Total RSVPs</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon orange">
+          <i class="fas fa-star"></i>
+        </div>
+        <div class="stat-info">
+          <h3 id="events-attended">0</h3>
+          <p>Events Attended</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon purple">
+          <i class="fas fa-calendar-plus"></i>
+        </div>
+        <div class="stat-info">
+          <h3 id="available-events">0</h3>
+          <p>Available Events</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <h2>Quick Actions</h2>
+      <div class="action-buttons">
+        <button class="action-btn primary" onclick="showSection('discover')">
+          <i class="fas fa-search"></i>
+          Discover Events
+        </button>
+        <button class="action-btn secondary" onclick="showSection('my-events')">
+          <i class="fas fa-calendar"></i>
+          My Events
+        </button>
+        <button class="action-btn tertiary" onclick="showSection('history')">
+          <i class="fas fa-history"></i>
+          Event History
+        </button>
+      </div>
+    </div>
+
+    <!-- Upcoming Events -->
+    <div class="upcoming-events">
+      <h2>Your Upcoming Events</h2>
+      <div class="events-list" id="upcoming-events-list">
+        <!-- Events will be loaded here -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Discover Events Section -->
+  <section id="discover-section" class="content-section">
+    <div class="section-header">
+      <h1>Discover Events</h1>
+      <p>Find exciting events happening near you</p>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="discover-filters">
+      <div class="search-group">
+        <input type="text" id="discover-search" placeholder="Search events...">
+        <button class="search-btn" onclick="searchEvents()">
+          <i class="fas fa-search"></i>
+        </button>
+      </div>
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="all">All Events</button>
+        <button class="filter-btn" data-filter="upcoming">Upcoming</button>
+        <button class="filter-btn" data-filter="available">Available</button>
+      </div>
+    </div>
+
+    <!-- Events Grid -->
+    <div class="discover-events-grid" id="discover-events-grid">
+      <!-- Events will be loaded here -->
+    </div>
+  </section>
+
+  <!-- My Events Section -->
+  <section id="my-events-section" class="content-section">
+    <div class="section-header">
+      <h1>My Events</h1>
+      <p>Events you've registered for</p>
+    </div>
+
+    <!-- Event Filters -->
+    <div class="event-filters">
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="upcoming">Upcoming</button>
+        <button class="filter-btn" data-filter="today">Today</button>
+      </div>
+    </div>
+
+    <!-- My Events List -->
+    <div class="my-events-list" id="my-events-list">
+      <!-- Events will be loaded here -->
+    </div>
+  </section>
+
+  <!-- History Section -->
+  <section id="history-section" class="content-section">
+    <div class="section-header">
+      <h1>Event History</h1>
+      <p>Events you've attended in the past</p>
+    </div>
+
+    <!-- History List -->
+    <div class="history-list" id="history-list">
+      <!-- Past events will be loaded here -->
+    </div>
+  </section>
+</main>
+
+<!-- Event Details Modal -->
+<div id="event-modal" class="modal">
+  <div class="modal-content large">
+    <div class="modal-header">
+      <h2 id="modal-event-title">Event Details</h2>
+      <span class="close" onclick="closeModal('event-modal')">&times;</span>
+    </div>
+    <div class="modal-body" id="modal-event-content">
+      <!-- Event details will be loaded here -->
+    </div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loading-overlay" class="loading-overlay">
+  <div class="loading-spinner">
+    <i class="fas fa-spinner fa-spin"></i>
+    <p>Loading...</p>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container" class="toast-container"></div>
+
+<!-- Scripts -->
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/dashboard-attendee.js"></script>
+</body>
+</html>

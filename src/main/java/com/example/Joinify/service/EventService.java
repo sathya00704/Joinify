@@ -6,6 +6,7 @@ import com.example.Joinify.exception.BadRequestException;
 import com.example.Joinify.exception.ResourceNotFoundException;
 import com.example.Joinify.repository.EventRepository;
 import com.example.Joinify.repository.RSVPRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@Transactional
 public class EventService {
 
     @Autowired
@@ -228,5 +230,17 @@ public class EventService {
     // Get total event count
     public long getTotalEventCount() {
         return eventRepository.count();
+    }
+
+    public List<Event> getEventsByOrganizer(Long organizerId) {
+        return eventRepository.findByOrganizerIdWithOrganizer(organizerId);
+    }
+
+    public List<Event> getOrganizerUpcomingEvents(Long organizerId) {
+        return eventRepository.findUpcomingEventsByOrganizerWithDetails(organizerId, LocalDateTime.now());
+    }
+
+    public List<Event> getOrganizerPastEvents(Long organizerId) {
+        return eventRepository.findPastEventsByOrganizerWithDetails(organizerId, LocalDateTime.now());
     }
 }

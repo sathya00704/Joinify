@@ -19,7 +19,6 @@ public class RSVP {
 
     @NotNull(message = "Event is required")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JsonIgnore
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 

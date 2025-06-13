@@ -5,12 +5,14 @@ import com.example.Joinify.entity.User;
 import com.example.Joinify.exception.ResourceNotFoundException;
 import com.example.Joinify.service.EventService;
 import com.example.Joinify.service.UserService;
+import com.example.Joinify.repository.EventRepository;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -28,6 +30,9 @@ public class EventController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private EventRepository eventRepository;
+
     // Response class for event capacity
     public static class EventCapacityResponse {
         public final int maxCapacity;
@@ -43,36 +48,41 @@ public class EventController {
         }
     }
 
-    // Get all events (public access)
+    // Get all events with organizer data (JOIN FETCH)
     @GetMapping
+    @Transactional(readOnly = true)
     public ResponseEntity<List<Event>> getAllEvents() {
-        List<Event> events = eventService.getAllEvents();
+        List<Event> events = eventRepository.findAllEventsWithOrganizer();
         return ResponseEntity.ok(events);
     }
 
-    // Get upcoming events (public access)
+    // Get upcoming events with organizer data (JOIN FETCH)
     @GetMapping("/upcoming")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<Event>> getUpcomingEvents() {
-        List<Event> events = eventService.getUpcomingEvents();
+        List<Event> events = eventRepository.findUpcomingEventsWithOrganizer(LocalDateTime.now());
         return ResponseEntity.ok(events);
     }
 
-    // Get past events (public access)
+    // Get past events with organizer data (JOIN FETCH)
     @GetMapping("/past")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<Event>> getPastEvents() {
-        List<Event> events = eventService.getPastEvents();
+        List<Event> events = eventRepository.findPastEventsWithOrganizer(LocalDateTime.now());
         return ResponseEntity.ok(events);
     }
 
-    // Get events with available capacity
+    // Get events with available capacity and organizer data (JOIN FETCH)
     @GetMapping("/available")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<Event>> getEventsWithAvailableCapacity() {
-        List<Event> events = eventService.getEventsWithAvailableCapacity();
+        List<Event> events = eventRepository.findEventsWithAvailableCapacityAndOrganizer(LocalDateTime.now());
         return ResponseEntity.ok(events);
     }
 
-    // Get event by ID
+    // Get event by ID with organizer data
     @GetMapping("/{id}")
+    @Transactional(readOnly = true)
     public ResponseEntity<Event> getEventById(@PathVariable Long id) {
         try {
             Event event = eventService.getEventById(id);
@@ -82,37 +92,40 @@ public class EventController {
         }
     }
 
-    // Search events by title
+    // Search events by title with organizer data (JOIN FETCH)
     @GetMapping("/search/title")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<Event>> searchEventsByTitle(@RequestParam String keyword) {
         try {
-            List<Event> events = eventService.searchEventsByTitle(keyword);
+            List<Event> events = eventRepository.findByTitleContainingIgnoreCaseWithOrganizer(keyword);
             return ResponseEntity.ok(events);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
     }
 
-    // Search events by location
+    // Search events by location with organizer data (JOIN FETCH)
     @GetMapping("/search/location")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<Event>> searchEventsByLocation(@RequestParam String location) {
         try {
-            List<Event> events = eventService.searchEventsByLocation(location);
+            List<Event> events = eventRepository.findByLocationContainingIgnoreCaseWithOrganizer(location);
             return ResponseEntity.ok(events);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
     }
 
-    // Get events between dates
+    // Get events between dates with organizer data (JOIN FETCH)
     @GetMapping("/date-range")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<Event>> getEventsBetweenDates(
             @RequestParam String startDate,
             @RequestParam String endDate) {
         try {
             LocalDateTime start = LocalDateTime.parse(startDate);
             LocalDateTime end = LocalDateTime.parse(endDate);
-            List<Event> events = eventService.getEventsBetweenDates(start, end);
+            List<Event> events = eventRepository.findEventsBetweenDatesWithOrganizer(start, end);
             return ResponseEntity.ok(events);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
@@ -195,20 +208,22 @@ public class EventController {
         }
     }
 
-    // Get events by organizer
+    // Get events by organizer with organizer data (JOIN FETCH)
     @GetMapping("/organizer/{organizerId}")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<Event>> getEventsByOrganizer(@PathVariable Long organizerId) {
         try {
-            List<Event> events = eventService.getEventsByOrganizerId(organizerId);
+            List<Event> events = eventRepository.findByOrganizerIdWithOrganizer(organizerId);
             return ResponseEntity.ok(events);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
     }
 
-    // Get my events (current organizer)
+    // Get my events (current organizer) with organizer data (JOIN FETCH)
     @GetMapping("/my-events")
     @PreAuthorize("hasRole('ORGANIZER')")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<Event>> getMyEvents(Authentication authentication) {
         String username = authentication.getName();
         Optional<User> organizer = userService.getUserByUsername(username);
@@ -218,16 +233,17 @@ public class EventController {
         }
 
         try {
-            List<Event> events = eventService.getEventsByOrganizerId(organizer.get().getId());
+            List<Event> events = eventRepository.findByOrganizerIdWithOrganizer(organizer.get().getId());
             return ResponseEntity.ok(events);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
     }
 
-    // Get upcoming events by organizer
+    // Get upcoming events by organizer with organizer data (JOIN FETCH)
     @GetMapping("/my-events/upcoming")
     @PreAuthorize("hasRole('ORGANIZER')")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<Event>> getMyUpcomingEvents(Authentication authentication) {
         String username = authentication.getName();
         Optional<User> organizer = userService.getUserByUsername(username);
@@ -237,16 +253,20 @@ public class EventController {
         }
 
         try {
-            List<Event> events = eventService.getUpcomingEventsByOrganizer(organizer.get().getId());
+            List<Event> events = eventRepository.findUpcomingEventsByOrganizerWithOrganizer(
+                    organizer.get().getId(),
+                    LocalDateTime.now()
+            );
             return ResponseEntity.ok(events);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
     }
 
-    // Get past events by organizer
+    // Get past events by organizer with organizer data (JOIN FETCH)
     @GetMapping("/my-events/past")
     @PreAuthorize("hasRole('ORGANIZER')")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<Event>> getMyPastEvents(Authentication authentication) {
         String username = authentication.getName();
         Optional<User> organizer = userService.getUserByUsername(username);
@@ -256,7 +276,10 @@ public class EventController {
         }
 
         try {
-            List<Event> events = eventService.getPastEventsByOrganizer(organizer.get().getId());
+            List<Event> events = eventRepository.findPastEventsByOrganizerWithOrganizer(
+                    organizer.get().getId(),
+                    LocalDateTime.now()
+            );
             return ResponseEntity.ok(events);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();

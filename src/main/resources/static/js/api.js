@@ -28,9 +28,11 @@ class ApiService {
         return token ? { 'Authorization': `Bearer ${token}` } : {};
     }
 
-    // Generic API request method
+    // Enhanced Generic API request method with better error handling
     async request(endpoint, options = {}) {
         const url = `${this.baseURL}${endpoint}`;
+        console.log('Making API request to:', url);
+
         const config = {
             headers: {
                 'Content-Type': 'application/json',
@@ -42,6 +44,7 @@ class ApiService {
 
         try {
             const response = await fetch(url, config);
+            console.log('API Response status:', response.status);
 
             // Handle non-JSON responses (like for boolean endpoints)
             const contentType = response.headers.get('content-type');
@@ -53,6 +56,8 @@ class ApiService {
                 data = await response.text();
             }
 
+            console.log('API Response data:', data);
+
             if (!response.ok) {
                 const errorMessage = typeof data === 'object' ? data.message : data;
                 throw new Error(errorMessage || `HTTP ${response.status}: ${response.statusText}`);
@@ -61,6 +66,12 @@ class ApiService {
             return data;
         } catch (error) {
             console.error('API Error:', error);
+
+            // Enhanced error handling for better debugging
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                throw new Error('Network error: Cannot connect to backend server. Please ensure Spring Boot is running on port 8080.');
+            }
+
             throw error;
         }
     }
@@ -101,6 +112,10 @@ class ApiService {
         return this.request('/events/past');
     }
 
+    async getAvailableEvents() {
+        return this.request('/events/available');
+    }
+
     async getEventById(id) {
         return this.request(`/events/${id}`);
     }
@@ -129,8 +144,33 @@ class ApiService {
         return this.request(`/events/search/title?keyword=${encodeURIComponent(keyword)}`);
     }
 
+    async searchEventsByLocation(location) {
+        return this.request(`/events/search/location?location=${encodeURIComponent(location)}`);
+    }
+
+    async getEventsByDateRange(startDate, endDate) {
+        return this.request(`/events/date-range?startDate=${startDate}&endDate=${endDate}`);
+    }
+
+    // Organizer event methods
     async getMyEvents() {
         return this.request('/events/my-events');
+    }
+
+    async getMyUpcomingEvents() {
+        return this.request('/events/my-events/upcoming');
+    }
+
+    async getMyPastEvents() {
+        return this.request('/events/my-events/past');
+    }
+
+    async getEventsByOrganizer(organizerId) {
+        return this.request(`/events/organizer/${organizerId}`);
+    }
+
+    async getEventCapacity(eventId) {
+        return this.request(`/events/${eventId}/capacity`);
     }
 
     // Users API methods
@@ -149,6 +189,48 @@ class ApiService {
         });
     }
 
+    async changePassword(newPassword) {
+        return this.request('/users/change-password', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `newPassword=${encodeURIComponent(newPassword)}`
+        });
+    }
+
+    async getUserById(id) {
+        return this.request(`/users/${id}`);
+    }
+
+    async getAllUsers() {
+        return this.request('/users');
+    }
+
+    async getAllOrganizers() {
+        return this.request('/users/organizers');
+    }
+
+    async getAllAttendees() {
+        return this.request('/users/attendees');
+    }
+
+    async getUsersByRole(role) {
+        return this.request(`/users/role/${role}`);
+    }
+
+    async deleteUser(id) {
+        return this.request(`/users/${id}`, {
+            method: 'DELETE'
+        });
+    }
+
+    async deleteCurrentUser() {
+        return this.request('/users/profile', {
+            method: 'DELETE'
+        });
+    }
+
     // RSVP API methods
     async createRSVP(eventId) {
         return this.request(`/rsvp/event/${eventId}`, {
@@ -162,18 +244,77 @@ class ApiService {
         });
     }
 
+    async updateRSVPStatus(eventId, status) {
+        return this.request(`/rsvp/event/${eventId}/status?status=${status}`, {
+            method: 'PUT'
+        });
+    }
+
     async getRSVPStatus(eventId) {
         return this.request(`/rsvp/event/${eventId}/status`);
+    }
+
+    async checkRSVP(eventId) {
+        return this.request(`/rsvp/event/${eventId}/check`);
+    }
+
+    async getEventRSVPs(eventId) {
+        return this.request(`/rsvp/event/${eventId}`);
+    }
+
+    async getEventAttendees(eventId) {
+        return this.request(`/rsvp/event/${eventId}/attendees`);
+    }
+
+    async getPendingRSVPs(eventId) {
+        return this.request(`/rsvp/event/${eventId}/pending`);
     }
 
     async getMyRSVPs() {
         return this.request('/rsvp/my-rsvps');
     }
 
-    async getEventAttendees(eventId) {
-        return this.request(`/rsvp/event/${eventId}/attendees`);
+    async getMyUpcomingRSVPs() {
+        return this.request('/rsvp/my-rsvps/upcoming');
+    }
+
+    async getMyPastRSVPs() {
+        return this.request('/rsvp/my-rsvps/past');
+    }
+
+    async getRSVPCount(eventId) {
+        return this.request(`/rsvp/event/${eventId}/count`);
+    }
+
+    async confirmPendingRSVPs(eventId) {
+        return this.request(`/rsvp/event/${eventId}/confirm-pending`, {
+            method: 'POST'
+        });
+    }
+
+    // Test connectivity method
+    async testConnection() {
+        try {
+            const response = await this.request('/users/stats');
+            console.log('✅ Backend connection successful');
+            return { success: true, data: response };
+        } catch (error) {
+            console.error('❌ Backend connection failed:', error.message);
+            return { success: false, error: error.message };
+        }
     }
 }
 
 // Create global API instance
 const api = new ApiService();
+
+// Test backend connection on load
+document.addEventListener('DOMContentLoaded', async () => {
+    const connectionTest = await api.testConnection();
+    if (!connectionTest.success) {
+        console.warn('Backend connection failed. Some features may not work.');
+        if (typeof showToast === 'function') {
+            showToast('Cannot connect to backend server', 'warning');
+        }
+    }
+});

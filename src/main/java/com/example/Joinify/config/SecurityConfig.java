@@ -53,10 +53,12 @@ public class SecurityConfig {
                                 "/api/rsvp/event/*/count",
                                 "/api/users/stats",
                                 "/api/users/organizers",
-                                "/api/users/attendees"
+                                "/api/users/attendees",
+                                "/favicon.ico"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
+
                 .exceptionHandling(exh -> exh
                         .authenticationEntryPoint((request, response, ex) -> {
                             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication required");

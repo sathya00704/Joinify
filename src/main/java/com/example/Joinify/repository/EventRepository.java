@@ -14,7 +14,7 @@ import java.util.List;
 public interface EventRepository extends JpaRepository<Event, Long> {
 
     // Find upcoming events (events after current date/time)
-    @Query("SELECT e FROM Event e WHERE e.dateTime > :currentDateTime ORDER BY e.dateTime ASC")
+    @Query("SELECT e FROM Event e JOIN FETCH e.organizer WHERE e.dateTime > :currentDateTime ORDER BY e.dateTime ASC")
     List<Event> findUpcomingEvents(@Param("currentDateTime") LocalDateTime currentDateTime);
 
     // Find past events (events before current date/time)
@@ -58,4 +58,51 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     // Find top 5 recent events
     @Query("SELECT e FROM Event e ORDER BY e.dateTime DESC")
     List<Event> findTop5ByOrderByDateTimeDesc();
+
+    @Query("SELECT e FROM Event e JOIN FETCH e.organizer WHERE e.organizer.id = :organizerId AND e.dateTime > :currentDateTime ORDER BY e.dateTime ASC")
+    List<Event> findUpcomingEventsByOrganizerWithDetails(@Param("organizerId") Long organizerId, @Param("currentDateTime") LocalDateTime currentDateTime);
+
+    @Query("SELECT e FROM Event e JOIN FETCH e.organizer WHERE e.organizer.id = :organizerId AND e.dateTime < :currentDateTime ORDER BY e.dateTime DESC")
+    List<Event> findPastEventsByOrganizerWithDetails(@Param("organizerId") Long organizerId, @Param("currentDateTime") LocalDateTime currentDateTime);
+
+    @Query("SELECT e FROM Event e JOIN FETCH e.organizer WHERE e.dateTime > :currentDateTime ORDER BY e.dateTime ASC")
+    List<Event> findUpcomingEventsWithOrganizer(@Param("currentDateTime") LocalDateTime currentDateTime);
+
+    // JOIN FETCH for past events
+    @Query("SELECT e FROM Event e JOIN FETCH e.organizer WHERE e.dateTime < :currentDateTime ORDER BY e.dateTime DESC")
+    List<Event> findPastEventsWithOrganizer(@Param("currentDateTime") LocalDateTime currentDateTime);
+
+    // JOIN FETCH for all events (general discover)
+    @Query("SELECT e FROM Event e JOIN FETCH e.organizer ORDER BY e.dateTime ASC")
+    List<Event> findAllEventsWithOrganizer();
+
+    // JOIN FETCH for events with available capacity
+    @Query("SELECT e FROM Event e JOIN FETCH e.organizer WHERE e.dateTime > :currentDateTime AND " +
+            "(SELECT COUNT(r) FROM RSVP r WHERE r.event = e AND r.status = 'CONFIRMED') < e.maxCapacity " +
+            "ORDER BY e.dateTime ASC")
+    List<Event> findEventsWithAvailableCapacityAndOrganizer(@Param("currentDateTime") LocalDateTime currentDateTime);
+
+    // JOIN FETCH for search by title
+    @Query("SELECT e FROM Event e JOIN FETCH e.organizer WHERE LOWER(e.title) LIKE LOWER(CONCAT('%', :keyword, '%')) ORDER BY e.dateTime ASC")
+    List<Event> findByTitleContainingIgnoreCaseWithOrganizer(@Param("keyword") String keyword);
+
+    // JOIN FETCH for search by location
+    @Query("SELECT e FROM Event e JOIN FETCH e.organizer WHERE LOWER(e.location) LIKE LOWER(CONCAT('%', :location, '%')) ORDER BY e.dateTime ASC")
+    List<Event> findByLocationContainingIgnoreCaseWithOrganizer(@Param("location") String location);
+
+    // JOIN FETCH for events within date range
+    @Query("SELECT e FROM Event e JOIN FETCH e.organizer WHERE e.dateTime BETWEEN :startDate AND :endDate ORDER BY e.dateTime ASC")
+    List<Event> findEventsBetweenDatesWithOrganizer(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+
+    // JOIN FETCH for organizer's events
+    @Query("SELECT e FROM Event e JOIN FETCH e.organizer WHERE e.organizer.id = :organizerId ORDER BY e.dateTime DESC")
+    List<Event> findByOrganizerIdWithOrganizer(@Param("organizerId") Long organizerId);
+
+    // JOIN FETCH for organizer's upcoming events
+    @Query("SELECT e FROM Event e JOIN FETCH e.organizer WHERE e.organizer.id = :organizerId AND e.dateTime > :currentDateTime ORDER BY e.dateTime ASC")
+    List<Event> findUpcomingEventsByOrganizerWithOrganizer(@Param("organizerId") Long organizerId, @Param("currentDateTime") LocalDateTime currentDateTime);
+
+    // JOIN FETCH for organizer's past events
+    @Query("SELECT e FROM Event e JOIN FETCH e.organizer WHERE e.organizer.id = :organizerId AND e.dateTime < :currentDateTime ORDER BY e.dateTime DESC")
+    List<Event> findPastEventsByOrganizerWithOrganizer(@Param("organizerId") Long organizerId, @Param("currentDateTime") LocalDateTime currentDateTime);
 }

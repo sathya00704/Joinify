@@ -79,4 +79,22 @@ public interface RSVPRepository extends JpaRepository<RSVP, Long> {
     @Query("SELECT CASE WHEN COUNT(r) >= e.maxCapacity THEN true ELSE false END " +
             "FROM RSVP r JOIN r.event e WHERE r.event.id = :eventId AND r.status = 'CONFIRMED'")
     boolean isEventAtCapacity(@Param("eventId") Long eventId);
+
+    @Query("SELECT r FROM RSVP r JOIN FETCH r.event JOIN FETCH r.user WHERE r.user.id = :userId ORDER BY r.event.dateTime DESC")
+    List<RSVP> findByUserIdWithEventDetails(@Param("userId") Long userId);
+
+    @Query("SELECT r FROM RSVP r JOIN FETCH r.event WHERE r.user.id = :userId AND r.event.dateTime > :currentDateTime ORDER BY r.event.dateTime ASC")
+    List<RSVP> findUserUpcomingRSVPsWithEventDetails(@Param("userId") Long userId, @Param("currentDateTime") LocalDateTime currentDateTime);
+
+    @Query("SELECT r FROM RSVP r JOIN FETCH r.event WHERE r.user.id = :userId AND r.event.dateTime < :currentDateTime ORDER BY r.event.dateTime DESC")
+    List<RSVP> findUserPastRSVPsWithEventDetails(@Param("userId") Long userId, @Param("currentDateTime") LocalDateTime currentDateTime);
+
+    @Query("SELECT r FROM RSVP r JOIN FETCH r.user WHERE r.event.id = :eventId AND r.status = 'CONFIRMED'")
+    List<RSVP> findConfirmedRSVPsByEventIdWithUser(@Param("eventId") Long eventId);
+
+    @Query("SELECT r FROM RSVP r JOIN FETCH r.user WHERE r.event.id = :eventId AND r.status = 'PENDING'")
+    List<RSVP> findPendingRSVPsByEventIdWithUser(@Param("eventId") Long eventId);
+
+    @Query("SELECT r FROM RSVP r JOIN FETCH r.user WHERE r.event.id = :eventId")
+    List<RSVP> findByEventIdWithUser(@Param("eventId") Long eventId);
 }

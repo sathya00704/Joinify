@@ -3,6 +3,7 @@ package com.example.Joinify.controller;
 import com.example.Joinify.entity.RSVP;
 import com.example.Joinify.entity.RSVPStatus;
 import com.example.Joinify.entity.User;
+import com.example.Joinify.repository.RSVPRepository;
 import com.example.Joinify.service.RSVPService;
 import com.example.Joinify.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +27,9 @@ public class RSVPController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private RSVPRepository rsvpRepository;
 
     // Create RSVP (Attendees only)
     @PostMapping("/event/{eventId}")
@@ -100,6 +105,7 @@ public class RSVPController {
     // Get RSVP status for current user and event
     @GetMapping("/event/{eventId}/status")
     @PreAuthorize("hasRole('ATTENDEE') or hasRole('ORGANIZER')")
+    @Transactional(readOnly = true)
     public ResponseEntity<RSVPStatus> getRSVPStatus(@PathVariable Long eventId, Authentication authentication) {
         String username = authentication.getName();
         Optional<User> user = userService.getUserByUsername(username);
@@ -121,6 +127,7 @@ public class RSVPController {
     // Check if user has RSVP'd to event
     @GetMapping("/event/{eventId}/check")
     @PreAuthorize("hasRole('ATTENDEE') or hasRole('ORGANIZER')")
+    @Transactional(readOnly = true)
     public ResponseEntity<Boolean> hasUserRSVPd(@PathVariable Long eventId, Authentication authentication) {
         String username = authentication.getName();
         Optional<User> user = userService.getUserByUsername(username);
@@ -137,6 +144,7 @@ public class RSVPController {
     // Get all RSVPs for an event (Organizers only)
     @GetMapping("/event/{eventId}")
     @PreAuthorize("hasRole('ORGANIZER')")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<RSVP>> getRSVPsForEvent(@PathVariable Long eventId) {
         List<RSVP> rsvps = rsvpService.getRSVPsForEvent(eventId);
         return ResponseEntity.ok(rsvps);
@@ -145,6 +153,7 @@ public class RSVPController {
     // Get confirmed attendees for an event (Organizers only)
     @GetMapping("/event/{eventId}/attendees")
     @PreAuthorize("hasRole('ORGANIZER')")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<User>> getConfirmedAttendeesForEvent(@PathVariable Long eventId) {
         List<User> attendees = rsvpService.getConfirmedAttendeesForEvent(eventId);
         return ResponseEntity.ok(attendees);
@@ -153,6 +162,7 @@ public class RSVPController {
     // Get pending RSVPs for an event (Organizers only)
     @GetMapping("/event/{eventId}/pending")
     @PreAuthorize("hasRole('ORGANIZER')")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<RSVP>> getPendingRSVPsForEvent(@PathVariable Long eventId) {
         List<RSVP> pendingRSVPs = rsvpService.getPendingRSVPsForEvent(eventId);
         return ResponseEntity.ok(pendingRSVPs);
@@ -161,21 +171,30 @@ public class RSVPController {
     // Get my RSVPs (current user)
     @GetMapping("/my-rsvps")
     @PreAuthorize("hasRole('ATTENDEE') or hasRole('ORGANIZER')")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<RSVP>> getMyRSVPs(Authentication authentication) {
-        String username = authentication.getName();
-        Optional<User> user = userService.getUserByUsername(username);
+        try {
+            String username = authentication.getName();
+            Optional<User> userOpt = userService.getUserByUsername(username);
 
-        if (user.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            User user = userOpt.get();
+            // Use the new JOIN FETCH method
+            List<RSVP> rsvps = rsvpRepository.findByUserIdWithEventDetails(user.getId());
+            return ResponseEntity.ok(rsvps);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-
-        List<RSVP> rsvps = rsvpService.getRSVPsForUser(user.get().getId());
-        return ResponseEntity.ok(rsvps);
     }
 
     // Get my upcoming RSVPs
     @GetMapping("/my-rsvps/upcoming")
     @PreAuthorize("hasRole('ATTENDEE') or hasRole('ORGANIZER')")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<RSVP>> getMyUpcomingRSVPs(Authentication authentication) {
         String username = authentication.getName();
         Optional<User> user = userService.getUserByUsername(username);
@@ -191,6 +210,7 @@ public class RSVPController {
     // Get my past RSVPs
     @GetMapping("/my-rsvps/past")
     @PreAuthorize("hasRole('ATTENDEE') or hasRole('ORGANIZER')")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<RSVP>> getPastRSVPs(Authentication authentication) {
         String username = authentication.getName();
         Optional<User> user = userService.getUserByUsername(username);
@@ -232,6 +252,7 @@ public class RSVPController {
     // Bulk confirm pending RSVPs (Organizers only)
     @PostMapping("/event/{eventId}/confirm-pending")
     @PreAuthorize("hasRole('ORGANIZER')")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<RSVP>> confirmPendingRSVPs(@PathVariable Long eventId) {
         try {
             List<RSVP> confirmedRSVPs = rsvpService.confirmPendingRSVPs(eventId);

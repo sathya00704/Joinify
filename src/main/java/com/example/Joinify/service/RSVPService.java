@@ -11,14 +11,17 @@ import com.example.Joinify.exception.ResourceNotFoundException;
 import com.example.Joinify.repository.EventRepository;
 import com.example.Joinify.repository.RSVPRepository;
 import com.example.Joinify.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class RSVPService {
 
     @Autowired
@@ -247,5 +250,28 @@ public class RSVPService {
         }
 
         return rsvpRepository.findConfirmedRSVPsByEventId(eventId);
+    }
+
+//    public List<RSVP> getUserRSVPs(Long userId) {
+//        return rsvpRepository.findByUserIdWithDetails(userId);
+//    }
+//
+//    public List<RSVP> getUserUpcomingRSVPs(Long userId) {
+//        return rsvpRepository.findUserUpcomingRSVPsWithDetails(userId, LocalDateTime.now());
+//    }
+//
+//    public List<RSVP> getUserPastRSVPs(Long userId) {
+//        return rsvpRepository.findUserPastRSVPsWithDetails(userId, LocalDateTime.now());
+//    }
+
+    public List<RSVP> getEventRSVPs(Long eventId) {
+        return rsvpRepository.findByEventIdWithUser(eventId);
+    }
+
+    public List<User> getConfirmedAttendees(Long eventId) {
+        List<RSVP> confirmedRSVPs = rsvpRepository.findConfirmedRSVPsByEventIdWithUser(eventId);
+        return confirmedRSVPs.stream()
+                .map(RSVP::getUser)
+                .collect(Collectors.toList());
     }
 }

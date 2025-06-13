@@ -590,7 +590,7 @@ function searchEvents() {
 }
 
 function editProfile() {
-    showToast('Profile editing feature coming soon!', 'info');
+    showToast('Contact Administrator at support@joinify.com', 'info');
 }
 
 function logout() {

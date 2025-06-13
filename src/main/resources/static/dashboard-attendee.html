@@ -8,11 +8,18 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
+
 <!-- Navigation -->
 <nav class="dashboard-nav">
   <div class="nav-brand">
-    <i class="fas fa-calendar-alt"></i>
+    <img src="images/game-icons_glass-celebration.svg" alt="Joinify Logo" style="width: 24px; height: 24px;">
     <span>Joinify</span>
+  </div>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">
+      <i class="fas fa-home"></i>
+      <span>Home</span>
+    </a>
   </div>
   <div class="nav-user">
     <span id="user-name">Loading...</span>
@@ -28,6 +35,7 @@
     </div>
   </div>
 </nav>
+
 
 <!-- Sidebar -->
 <aside class="sidebar">
@@ -123,11 +131,6 @@
         <button class="search-btn" onclick="searchEvents()">
           <i class="fas fa-search"></i>
         </button>
-      </div>
-      <div class="filter-group">
-        <button class="filter-btn active" data-filter="all">All Events</button>
-        <button class="filter-btn" data-filter="upcoming">Upcoming</button>
-        <button class="filter-btn" data-filter="available">Available</button>
       </div>
     </div>
 

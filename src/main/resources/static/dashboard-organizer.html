@@ -9,11 +9,18 @@
     <link href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css" rel="stylesheet">
 </head>
 <body>
+
 <!-- Navigation -->
 <nav class="dashboard-nav">
     <div class="nav-brand">
-        <i class="fas fa-calendar-alt"></i>
+        <img src="images/game-icons_glass-celebration.svg" alt="Joinify Logo" style="width: 24px; height: 24px;">
         <span>Joinify</span>
+    </div>
+    <div class="nav-links">
+        <a href="index.html" class="nav-link">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
     </div>
     <div class="nav-user">
         <span id="user-name">Loading...</span>
@@ -105,28 +112,9 @@
             </div>
         </div>
 
-        <!-- Quick Actions -->
-        <div class="quick-actions">
-            <h2>Quick Actions</h2>
-            <div class="action-buttons">
-                <button class="action-btn primary" onclick="showSection('create-event')">
-                    <i class="fas fa-plus"></i>
-                    Create New Event
-                </button>
-                <button class="action-btn secondary" onclick="showSection('events')">
-                    <i class="fas fa-list"></i>
-                    View All Events
-                </button>
-                <button class="action-btn tertiary" onclick="showSection('analytics')">
-                    <i class="fas fa-chart-bar"></i>
-                    View Analytics
-                </button>
-            </div>
-        </div>
-
         <!-- Recent Events -->
         <div class="recent-events">
-            <h2>Recent Events</h2>
+            <h2>Upcoming Event</h2>
             <div class="events-table-container">
                 <table class="events-table">
                     <thead>
@@ -248,6 +236,19 @@
         </div>
     </section>
 </main>
+
+<!-- Event Details Modal -->
+<div id="event-modal" class="modal">
+    <div class="modal-content large">
+        <div class="modal-header">
+            <h2 id="modal-event-title">Event Details</h2>
+            <span class="close" onclick="closeModal('event-modal')">&times;</span>
+        </div>
+        <div class="modal-body" id="modal-event-content">
+            <!-- Event details will be loaded here -->
+        </div>
+    </div>
+</div>
 
 <!-- Loading Overlay -->
 <div id="loading-overlay" class="loading-overlay">

@@ -23,7 +23,7 @@ class OrganizerDashboard {
     async checkAuthentication() {
         await authManager.checkAuthStatus();
         if (!authManager.isLoggedIn() || authManager.getCurrentUserRole() !== 'ORGANIZER') {
-            window.location.href = 'login.html';
+            window.location.href = 'index.html';
             return;
         }
         this.currentUser = authManager.currentUser;
@@ -81,55 +81,75 @@ class OrganizerDashboard {
     }
 
     loadRecentEvents() {
-        const recentEvents = this.myEvents
-            .sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime))
-            .slice(0, 5);
+        const now = new Date();
+
+        // Filter and sort upcoming events
+        const upcomingEvents = this.myEvents
+            .filter(event => new Date(event.dateTime) > now)
+            .sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
 
         const tbody = document.getElementById('recent-events-tbody');
-        if (recentEvents.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center">No events found</td></tr>';
+
+        if (upcomingEvents.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center">No upcoming events</td></tr>';
             return;
         }
 
-        tbody.innerHTML = recentEvents.map(event => {
-            const now = new Date();
-            const eventDate = new Date(event.dateTime);
-            const status = eventDate > now ? 'upcoming' : 'past';
+        // Show only the FIRST upcoming event
+        const nextEvent = upcomingEvents[0];
+        const eventDate = new Date(nextEvent.dateTime);
+        const status = 'upcoming';
 
-            return `
-                <tr>
-                    <td>${event.title}</td>
-                    <td>${this.formatDateTime(event.dateTime)}</td>
-                    <td id="attendees-${event.id}">Loading...</td>
-                    <td><span class="event-status ${status}">${status}</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-secondary" onclick="organizerDashboard.viewEventDetails(${event.id})">
-                            View
-                        </button>
-                        <button class="btn btn-sm btn-primary" onclick="organizerDashboard.editEvent(${event.id})">
-                            Edit
-                        </button>
-                        <button class="btn btn-sm btn-danger" onclick="organizerDashboard.deleteEvent(${event.id})">
-                            Delete
-                        </button>
+        tbody.innerHTML = `
+            <tr>
+                <td>${nextEvent.title}</td>
+                <td>${this.formatDateTime(nextEvent.dateTime)}</td>
+                <td id="attendees-${nextEvent.id}">Loading...</td>
+                <td><span class="event-status ${status}">${status}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-secondary" onclick="organizerDashboard.viewEventDetails(${nextEvent.id})">
+                        View
+                    </button>
+                    <button class="btn btn-sm btn-primary" onclick="organizerDashboard.editEvent(${nextEvent.id})">
+                        Edit
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="organizerDashboard.deleteEvent(${nextEvent.id})">
+                        Delete
+                    </button>
+                </td>
+            </tr>
+            ${upcomingEvents.length > 1 ?
+                `<tr>
+                    <td colspan="5" style="text-align: center; padding: 15px; color: #666; font-style: italic;">
+                        <i class="fas fa-info-circle"></i>
+                        You have ${upcomingEvents.length - 1} more upcoming event${upcomingEvents.length > 2 ? 's' : ''}.
+                        <a href="#" onclick="showSection('events')" style="color: #007bff; text-decoration: none;">View all events</a>
                     </td>
-                </tr>
-            `;
-        }).join('');
-
-        // Load attendee counts asynchronously
-        recentEvents.forEach(async (event) => {
-            try {
-                const rsvpCount = await api.request(`/rsvp/event/${event.id}/count`);
-                const cell = document.getElementById(`attendees-${event.id}`);
-                if (cell) {
-                    cell.textContent = `${rsvpCount.confirmed || 0}/${event.maxCapacity}`;
-                }
-            } catch (error) {
-                console.error('Error loading attendee count:', error);
+                </tr>` : ''
             }
-        });
+        `;
+
+        // Load attendee count for the next event
+        this.loadAttendeeCount(nextEvent);
     }
+
+    // Helper method to load attendee count
+    async loadAttendeeCount(event) {
+        try {
+            const rsvpCount = await api.request(`/rsvp/event/${event.id}/count`);
+            const cell = document.getElementById(`attendees-${event.id}`);
+            if (cell) {
+                cell.textContent = `${rsvpCount.confirmed || 0}/${event.maxCapacity}`;
+            }
+        } catch (error) {
+            console.error('Error loading attendee count:', error);
+            const cell = document.getElementById(`attendees-${event.id}`);
+            if (cell) {
+                cell.textContent = `0/${event.maxCapacity}`;
+            }
+        }
+    }
+
 
     loadMyEvents() {
         const container = document.getElementById('events-grid');
@@ -345,7 +365,7 @@ class OrganizerDashboard {
         try {
             const [event, rsvpCount, attendees] = await Promise.all([
                 api.getEventById(eventId),
-                api.request(`/rsvp/event/${eventId}/count`),
+                api.getRSVPCount(eventId),
                 api.getEventAttendees(eventId)
             ]);
 
@@ -359,17 +379,20 @@ class OrganizerDashboard {
                     <p><strong>Confirmed RSVPs:</strong> ${rsvpCount.confirmed || 0}</p>
                     <p><strong>Pending RSVPs:</strong> ${rsvpCount.pending || 0}</p>
                     <p><strong>Total RSVPs:</strong> ${rsvpCount.total || 0}</p>
+                    <p><strong>Available Spots:</strong> ${event.maxCapacity - (rsvpCount.confirmed || 0)}</p>
                     <div class="attendees-preview">
-                        <h4>Recent Attendees:</h4>
+                        <h4>Attendees:</h4>
                         ${attendees.slice(0, 5).map(attendee => `
                             <div class="attendee-preview">${attendee.username} (${attendee.email})</div>
                         `).join('')}
                         ${attendees.length > 5 ? `<p>... and ${attendees.length - 5} more</p>` : ''}
+                        ${attendees.length === 0 ? '<p>No attendees yet</p>' : ''}
                     </div>
                 </div>
             `;
 
-            document.getElementById('event-modal').style.display = 'block';
+            // Use the showModal function from utils.js
+            showModal('event-modal');
         } catch (error) {
             console.error('Failed to load event details:', error);
             showToast('Failed to load event details', 'error');
@@ -580,12 +603,12 @@ function showSection(sectionName) {
 }
 
 function editProfile() {
-    showToast('Profile editing feature coming soon!', 'info');
+    showToast('Contact administrator at support@joinify.com', 'info');
 }
 
 function logout() {
     authManager.logout();
-    window.location.href = 'login.html';
+    window.location.href = 'index.html';
 }
 
 function closeModal(modalId) {

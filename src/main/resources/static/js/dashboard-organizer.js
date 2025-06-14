@@ -150,7 +150,6 @@ class OrganizerDashboard {
         }
     }
 
-
     loadMyEvents() {
         const container = document.getElementById('events-grid');
         if (this.myEvents.length === 0) {
@@ -163,14 +162,28 @@ class OrganizerDashboard {
             const eventDate = new Date(event.dateTime);
             const status = eventDate > now ? 'upcoming' : 'past';
 
+            // Render event image if available
+            const eventImage = event.imageUrl ?
+                `<div class="event-image-container">
+                    <img src="${event.imageUrl}" alt="${event.title}" class="event-image"
+                         onerror="this.style.display='none';">
+                </div>` : '';
+
+            // Render event fee
+            const eventFee = event.fee && event.fee > 0 ?
+                `<span class="event-fee">Rs. ${parseFloat(event.fee).toFixed(2)}</span>` :
+                '<span class="event-fee free">Free</span>';
+
             return `
                 <div class="event-card">
+                    ${eventImage}
                     <div class="event-card-header">
                         <div class="event-card-title">${event.title}</div>
                         <div class="event-card-meta">
                             <span><i class="fas fa-calendar"></i> ${this.formatDateTime(event.dateTime)}</span>
                             <span><i class="fas fa-map-marker-alt"></i> ${event.location}</span>
                             <span><i class="fas fa-users"></i> ${event.maxCapacity} capacity</span>
+                            ${eventFee}
                         </div>
                         <div class="event-card-description">${event.description || 'No description available'}</div>
                     </div>
@@ -179,6 +192,9 @@ class OrganizerDashboard {
                         <div class="event-actions">
                             <button class="btn btn-sm btn-secondary" onclick="organizerDashboard.viewEventDetails(${event.id})">
                                 Details
+                            </button>
+                            <button class="btn btn-sm btn-success" onclick="organizerDashboard.downloadAttendeesCSV(${event.id}, '${event.title.replace(/'/g, "\\'")}')">
+                                <i class="fas fa-download"></i> Export
                             </button>
                             <button class="btn btn-sm btn-primary" onclick="organizerDashboard.editEvent(${event.id})">
                                 Edit
@@ -249,17 +265,38 @@ class OrganizerDashboard {
         const form = document.getElementById('create-event-form');
         const formData = new FormData(form);
 
+        const rawImageUrl = formData.get('imageUrl');
+        const rawFee = formData.get('fee');
+
+        // Clean and prepare data
+        const cleanImageUrl = rawImageUrl ? rawImageUrl.trim() : '';
+        const cleanFee = rawFee ? rawFee.trim() : '';
+
         const eventData = {
             title: formData.get('title'),
             description: formData.get('description'),
             dateTime: formData.get('dateTime'),
             location: formData.get('location'),
-            maxCapacity: parseInt(formData.get('maxCapacity'))
+            maxCapacity: parseInt(formData.get('maxCapacity')),
+            imageUrl: cleanImageUrl || null,
+            fee: cleanFee ? parseFloat(cleanFee) : 0.00
         };
 
         // Validate required fields
         if (!eventData.title || !eventData.dateTime || !eventData.location || !eventData.maxCapacity) {
             showToast('Please fill in all required fields', 'error');
+            return;
+        }
+
+        // Validate image URL ONLY if it's provided (not empty)
+        if (cleanImageUrl && !this.isValidImageUrl(cleanImageUrl)) {
+            showToast('Please enter a valid image URL with proper format (jpg, png, gif, etc.) or from supported hosting services', 'error');
+            return;
+        }
+
+        // Validate fee
+        if (cleanFee && !this.validateFee(cleanFee)) {
+            showToast('Please enter a valid fee amount (0.00 or positive number with max 2 decimal places)', 'error');
             return;
         }
 
@@ -284,6 +321,77 @@ class OrganizerDashboard {
         }
     }
 
+
+    // Enhanced URL validation for images (removed Google Drive)
+    isValidImageUrl(url) {
+        // If URL is empty, null, or undefined, it's valid (optional field)
+        if (!url || url.trim() === '') {
+            return true;
+        }
+
+        try {
+            const urlObj = new URL(url);
+
+            // Check for valid protocols
+            if (!['http:', 'https:'].includes(urlObj.protocol)) {
+                return false;
+            }
+
+            // Check for image file extensions
+            const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.tiff', '.ico'];
+            const pathname = url.toLowerCase();
+            const hasImageExtension = imageExtensions.some(ext => pathname.includes(ext));
+
+            // Check for common image hosting services
+            const imageHosts = [
+                'imgur.com', 'flickr.com', 'unsplash.com', 'pexels.com', 'pixabay.com',
+                'cloudinary.com', 'amazonaws.com', 'googleusercontent.com', 'github.com',
+                'githubusercontent.com', 'wikimedia.org', 'wordpress.com'
+            ];
+            const isImageHost = imageHosts.some(host => url.includes(host));
+
+            return hasImageExtension || isImageHost;
+
+        } catch (error) {
+            // If URL constructor throws an error, it's not a valid URL
+            return false;
+        }
+    }
+
+
+    // Validate fee input
+    validateFee(fee) {
+        // If fee is empty, null, or undefined, it's valid (defaults to 0.00)
+        if (fee === null || fee === undefined || fee === '' || fee.trim() === '') {
+            return true;
+        }
+
+        const numFee = parseFloat(fee);
+        if (isNaN(numFee) || numFee < 0) {
+            return false;
+        }
+
+        // Check for reasonable maximum (e.g., Rs. 100,000)
+        if (numFee > 100000) {
+            return false;
+        }
+
+        // Check for too many decimal places
+        const decimalPlaces = (fee.toString().split('.')[1] || '').length;
+        if (decimalPlaces > 2) {
+            return false;
+        }
+
+        return true;
+    }
+
+
+    // Format fee for display
+    formatFee(fee) {
+        if (!fee || fee === 0) return 'Free';
+        return `Rs. ${parseFloat(fee).toFixed(2)}`;
+    }
+
     async editEvent(eventId) {
         try {
             const event = await api.getEventById(eventId);
@@ -293,6 +401,8 @@ class OrganizerDashboard {
             document.getElementById('event-description').value = event.description || '';
             document.getElementById('event-location').value = event.location;
             document.getElementById('event-capacity').value = event.maxCapacity;
+            document.getElementById('event-image-url').value = event.imageUrl || '';
+            document.getElementById('event-fee').value = event.fee || '';
 
             // Format datetime for input
             const eventDate = new Date(event.dateTime);
@@ -315,12 +425,17 @@ class OrganizerDashboard {
         const form = document.getElementById('create-event-form');
         const formData = new FormData(form);
 
+        const rawImageUrl = formData.get('imageUrl');
+        const rawFee = formData.get('fee');
+
         const eventData = {
             title: formData.get('title'),
             description: formData.get('description'),
             dateTime: formData.get('dateTime'),
             location: formData.get('location'),
-            maxCapacity: parseInt(formData.get('maxCapacity'))
+            maxCapacity: parseInt(formData.get('maxCapacity')),
+            imageUrl: rawImageUrl ? rawImageUrl.trim() : null,
+            fee: rawFee ? parseFloat(rawFee) : 0.00
         };
 
         try {
@@ -369,35 +484,276 @@ class OrganizerDashboard {
                 api.getEventAttendees(eventId)
             ]);
 
+            const eventImage = event.imageUrl ?
+                `<div class="modal-event-image">
+                    <img src="${event.imageUrl}" alt="${event.title}" style="max-width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 15px;" onerror="this.style.display='none';">
+                </div>` : '';
+
+            const eventFee = event.fee && event.fee > 0 ?
+                `<p><strong>Fee:</strong> Rs. ${parseFloat(event.fee).toFixed(2)}</p>` :
+                '<p><strong>Fee:</strong> Free</p>';
+
             document.getElementById('modal-event-title').textContent = event.title;
             document.getElementById('modal-event-content').innerHTML = `
-                <div class="event-details">
-                    <p><strong>Description:</strong> ${event.description || 'No description available'}</p>
-                    <p><strong>Date & Time:</strong> ${this.formatDateTime(event.dateTime)}</p>
-                    <p><strong>Location:</strong> ${event.location}</p>
-                    <p><strong>Capacity:</strong> ${event.maxCapacity}</p>
-                    <p><strong>Confirmed RSVPs:</strong> ${rsvpCount.confirmed || 0}</p>
-                    <p><strong>Pending RSVPs:</strong> ${rsvpCount.pending || 0}</p>
-                    <p><strong>Total RSVPs:</strong> ${rsvpCount.total || 0}</p>
-                    <p><strong>Available Spots:</strong> ${event.maxCapacity - (rsvpCount.confirmed || 0)}</p>
-                    <div class="attendees-preview">
-                        <h4>Attendees:</h4>
-                        ${attendees.slice(0, 5).map(attendee => `
-                            <div class="attendee-preview">${attendee.username} (${attendee.email})</div>
-                        `).join('')}
-                        ${attendees.length > 5 ? `<p>... and ${attendees.length - 5} more</p>` : ''}
-                        ${attendees.length === 0 ? '<p>No attendees yet</p>' : ''}
+                <div class="event-details scrollable-content">
+                    ${eventImage}
+                    <div class="event-info">
+                        <p><strong>Description:</strong> ${event.description || 'No description available'}</p>
+                        <p><strong>Date & Time:</strong> ${this.formatDateTime(event.dateTime)}</p>
+                        <p><strong>Location:</strong> ${event.location}</p>
+                        <p><strong>Capacity:</strong> ${event.maxCapacity}</p>
+                        <p><strong>Confirmed RSVPs:</strong> ${rsvpCount.confirmed || 0}</p>
+                        <p><strong>Pending RSVPs:</strong> ${rsvpCount.pending || 0}</p>
+                        <p><strong>Total RSVPs:</strong> ${rsvpCount.total || 0}</p>
+                        <p><strong>Available Spots:</strong> ${event.maxCapacity - (rsvpCount.confirmed || 0)}</p>
+                        ${eventFee}
+
+                        <div class="attendees-section">
+                            <div class="attendees-header">
+                                <h4>Attendees (${attendees.length})</h4>
+                                <button class="btn btn-sm btn-success" onclick="organizerDashboard.downloadAttendeesCSV(${eventId}, '${event.title.replace(/'/g, "\\'")}')">
+                                    <i class="fas fa-download"></i> Download CSV
+                                </button>
+                            </div>
+
+                            <div class="attendees-preview">
+                                ${attendees.slice(0, 5).map(attendee => `
+                                    <div class="attendee-preview">
+                                        <span class="attendee-name">${attendee.username}</span>
+                                        <span class="attendee-email">${attendee.email}</span>
+                                    </div>
+                                `).join('')}
+                                ${attendees.length > 5 ? `<p class="more-attendees">... and ${attendees.length - 5} more attendees</p>` : ''}
+                                ${attendees.length === 0 ? '<p class="no-attendees">No attendees yet</p>' : ''}
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
 
-            // Use the showModal function from utils.js
             showModal('event-modal');
         } catch (error) {
             console.error('Failed to load event details:', error);
             showToast('Failed to load event details', 'error');
         }
     }
+
+    // CSV Download functionality
+    async downloadAttendeesCSV(eventId, eventTitle) {
+        try {
+            showLoading();
+
+            // Get detailed attendee data
+            const [attendees, event, rsvpCount] = await Promise.all([
+                api.getEventAttendees(eventId),
+                api.getEventById(eventId),
+                api.getRSVPCount(eventId)
+            ]);
+
+            if (attendees.length === 0) {
+                showToast('No attendees to export', 'warning');
+                return;
+            }
+
+            // Convert to CSV
+            const csvData = this.convertAttendeesToCSV(attendees, event, rsvpCount);
+
+            // Create and download file
+            const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `${this.sanitizeFilename(eventTitle)}_attendees_${this.getCurrentDate()}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                showToast(`Attendees list downloaded successfully (${attendees.length} attendees)`, 'success');
+            } else {
+                showToast('CSV download not supported in this browser', 'error');
+            }
+
+        } catch (error) {
+            console.error('Error downloading attendees CSV:', error);
+            showToast('Failed to download attendees list', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // Convert attendees data to CSV format
+    convertAttendeesToCSV(attendees, event, rsvpCount) {
+        // CSV Headers
+        const headers = [
+            'Event Title',
+            'Event Date',
+            'Event Location',
+            'Attendee Name',
+            'Email Address',
+            'Registration Date',
+            'RSVP Status',
+            'User ID',
+            'Contact'
+        ];
+
+        // Create CSV content
+        let csvContent = headers.map(header => `"${header}"`).join(',') + '\n';
+
+        // Add event summary row
+        csvContent += [
+            `"${event.title}"`,
+            `"${this.formatDateTime(event.dateTime)}"`,
+            `"${event.location}"`,
+            `"SUMMARY"`,
+            `"Total Attendees: ${attendees.length}"`,
+            `"Confirmed: ${rsvpCount.confirmed || 0}"`,
+            `"Pending: ${rsvpCount.pending || 0}"`,
+            `"Capacity: ${event.maxCapacity}"`,
+            `"Available: ${event.maxCapacity - (rsvpCount.confirmed || 0)}"`
+        ].join(',') + '\n';
+
+        // Add separator row
+        csvContent += Array(headers.length).fill('""').join(',') + '\n';
+
+        // Add attendee data
+        attendees.forEach(attendee => {
+            const row = [
+                `"${event.title}"`,
+                `"${this.formatDateTime(event.dateTime)}"`,
+                `"${event.location}"`,
+                `"${attendee.username || 'N/A'}"`,
+                `"${attendee.email || 'N/A'}"`,
+                `"${attendee.registrationDate ? this.formatDateTime(attendee.registrationDate) : 'N/A'}"`,
+                `"${attendee.rsvpStatus || 'CONFIRMED'}"`,
+                `"${attendee.id || 'N/A'}"`,
+                `"${attendee.email || 'N/A'}"`
+            ];
+            csvContent += row.join(',') + '\n';
+        });
+
+        // Add footer with export info
+        csvContent += '\n';
+        csvContent += [
+            `"Export Date"`,
+            `"${new Date().toLocaleString()}"`,
+            `"Exported By"`,
+            `"${this.currentUser?.username || 'Organizer'}"`,
+            `"Total Records"`,
+            `"${attendees.length}"`,
+            `""`,
+            `""`,
+            `""`
+        ].join(',') + '\n';
+
+        return csvContent;
+    }
+
+    // Helper method to sanitize filename
+    sanitizeFilename(filename) {
+        return filename.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    }
+
+    // Helper method to get current date for filename
+    getCurrentDate() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `${year}${month}${day}`;
+    }
+
+    // Show detailed attendees list
+    async showAttendeesTable(eventId) {
+        try {
+            showLoading();
+            const [attendees, event] = await Promise.all([
+                api.getEventAttendees(eventId),
+                api.getEventById(eventId)
+            ]);
+
+            const modalContent = `
+                <div class="attendees-table-container">
+                    <div class="attendees-table-header">
+                        <h3>${event.title} - Attendees List</h3>
+                        <div class="table-actions">
+                            <button class="btn btn-success" onclick="organizerDashboard.downloadAttendeesCSV(${eventId}, '${event.title.replace(/'/g, "\\'")}')">
+                                <i class="fas fa-download"></i> Export CSV
+                            </button>
+                            <button class="btn btn-secondary" onclick="closeModal('attendees-modal')">
+                                <i class="fas fa-times"></i> Close
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="attendees-table-content">
+                        ${attendees.length === 0 ?
+                            '<p class="no-data">No attendees registered for this event</p>' :
+                            `<table class="attendees-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Registration Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${attendees.map((attendee, index) => `
+                                        <tr>
+                                            <td>${attendee.username}</td>
+                                            <td>${attendee.email}</td>
+                                            <td>${attendee.registrationDate ? this.formatDateTime(attendee.registrationDate) : 'N/A'}</td>
+                                            <td><span class="status-badge confirmed">Confirmed</span></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-secondary" onclick="organizerDashboard.contactAttendee('${attendee.email}')">
+                                                    <i class="fas fa-envelope"></i> Contact
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>`
+                        }
+                    </div>
+
+                    <div class="attendees-table-footer">
+                        <p><strong>Total Attendees:</strong> ${attendees.length}</p>
+                        <p><strong>Event Capacity:</strong> ${event.maxCapacity}</p>
+                        <p><strong>Available Spots:</strong> ${event.maxCapacity - attendees.length}</p>
+                    </div>
+                </div>
+            `;
+
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('attendees-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'attendees-modal';
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content large">
+                        <div class="modal-body" id="attendees-modal-content"></div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            document.getElementById('attendees-modal-content').innerHTML = modalContent;
+            showModal('attendees-modal');
+
+        } catch (error) {
+            console.error('Error loading attendees table:', error);
+            showToast('Failed to load attendees list', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+
+
 
     contactAttendee(email) {
         window.location.href = `mailto:${email}`;
@@ -429,9 +785,12 @@ class OrganizerDashboard {
         });
 
         // Search functionality
-        document.getElementById('event-search').addEventListener('input', (e) => {
-            this.searchMyEvents(e.target.value);
-        });
+        const searchInput = document.getElementById('event-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                this.searchMyEvents(e.target.value);
+            });
+        }
     }
 
     applyEventFilter(filter) {
@@ -477,14 +836,26 @@ class OrganizerDashboard {
             const eventDate = new Date(event.dateTime);
             const status = eventDate > now ? 'upcoming' : 'past';
 
+            const eventImage = event.imageUrl ?
+                `<div class="event-image-container">
+                    <img src="${event.imageUrl}" alt="${event.title}" class="event-image"
+                         onerror="this.style.display='none';">
+                </div>` : '';
+
+            const eventFee = event.fee && event.fee > 0 ?
+                `<span class="event-fee">Rs. ${parseFloat(event.fee).toFixed(2)}</span>` :
+                '<span class="event-fee free">Free</span>';
+
             return `
                 <div class="event-card">
+                    ${eventImage}
                     <div class="event-card-header">
                         <div class="event-card-title">${event.title}</div>
                         <div class="event-card-meta">
                             <span><i class="fas fa-calendar"></i> ${this.formatDateTime(event.dateTime)}</span>
                             <span><i class="fas fa-map-marker-alt"></i> ${event.location}</span>
                             <span><i class="fas fa-users"></i> ${event.maxCapacity} capacity</span>
+                            ${eventFee}
                         </div>
                         <div class="event-card-description">${event.description || 'No description available'}</div>
                     </div>
@@ -612,7 +983,7 @@ function logout() {
 }
 
 function closeModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
+    hideModal(modalId);
 }
 
 function clearForm(formId) {
@@ -632,6 +1003,6 @@ document.addEventListener('DOMContentLoaded', () => {
 window.onclick = function(event) {
     const modal = document.getElementById('event-modal');
     if (event.target === modal) {
-        modal.style.display = 'none';
+        hideModal('event-modal');
     }
 }

@@ -7,6 +7,8 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +37,15 @@ public class Event {
 
     @Min(value = 1, message = "Maximum capacity must be at least 1")
     private int maxCapacity;
+
+    @NotBlank(message = "URL is required")
+    @Column(name = "image_url")
+    private String imageUrl;
+
+
+    @Column(name = "fee", precision = 10, scale = 2)
+    @Min(value = 0, message = "Minimum Fee is Rs 0")
+    private BigDecimal fee;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organizer_id", nullable = false)
@@ -83,4 +94,20 @@ public class Event {
 
     public List<RSVP> getRsvps() { return rsvps; }
     public void setRsvps(List<RSVP> rsvps) { this.rsvps = rsvps; }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public BigDecimal getFee() {
+        return fee;
+    }
+
+    public void setFee(BigDecimal fee) {
+        this.fee = fee;
+    }
 }

@@ -192,6 +192,32 @@
                 <label for="event-description">Description</label>
                 <textarea id="event-description" name="description" rows="4"></textarea>
             </div>
+            <div class="form-group">
+                <label for="event-image-url">Event Banner (Image URL) *</label>
+                <input type="url"
+                       id="event-image-url"
+                       name="imageUrl"
+                       placeholder="https://example.com/image.jpg"
+                       title="Enter a direct image URL or from image hosting service URL">
+                <small class="form-help">
+                    Supported: Direct image links (.jpg, .png, .gif, etc.) or images from hosting services
+                    like Imgur, Unsplash, etc. Suggested ratio - 16:9
+                    (Google Drive Links are not supported)
+                </small>
+            </div>
+            <div class="form-group">
+                <label for="event-fee">Event Fee (₹)</label>
+                <input type="number"
+                       id="event-fee"
+                       name="fee"
+                       step="0.01"
+                       min="0"
+                       placeholder="0.00"
+                       title="Enter the event fee in dollars (0.00 for free events)">
+                <small class="form-help">
+                    Enter 0.00 or leave empty for free events. Use decimal format (e.g., 25.50)
+                </small>
+            </div>
             <div class="form-actions">
                 <button type="button" class="btn btn-secondary" onclick="clearForm('create-event-form')">
                     Clear

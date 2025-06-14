@@ -180,7 +180,6 @@ class AttendeeDashboard {
                 return;
             }
 
-            // Filter out past events and user's existing RSVPs
             const now = new Date();
             const rsvpEventIds = this.myRSVPs
                 .filter(rsvp => rsvp.event && rsvp.event.id)
@@ -188,13 +187,8 @@ class AttendeeDashboard {
 
             const availableEvents = this.allEvents.filter(event => {
                 if (!event || !event.id || !event.dateTime) return false;
-
-                // Check if event is in the future
                 const isFuture = new Date(event.dateTime) > now;
-
-                // Check if user hasn't already RSVP'd
                 const notRSVPd = !rsvpEventIds.includes(event.id);
-
                 return isFuture && notRSVPd;
             });
 
@@ -207,7 +201,6 @@ class AttendeeDashboard {
                 return;
             }
 
-            // Rest of the method remains the same...
             const eventsWithCounts = await Promise.all(
                 sortedEvents.map(async (event) => {
                     try {
@@ -218,7 +211,6 @@ class AttendeeDashboard {
                             isAtCapacity: rsvpCount.confirmed >= event.maxCapacity
                         };
                     } catch (error) {
-                        console.error('Error getting RSVP count for event:', event.id);
                         return {
                             ...event,
                             currentRSVPs: 0,
@@ -228,6 +220,7 @@ class AttendeeDashboard {
                 })
             );
 
+            // In your loadDiscoverEvents method
             container.innerHTML = eventsWithCounts.map(event => {
                 const statusClass = event.isAtCapacity ? 'not-available' : 'upcoming';
                 const statusText = event.isAtCapacity ? 'Not Available' : 'Available';
@@ -235,14 +228,19 @@ class AttendeeDashboard {
                     ? `<button class="btn btn-sm btn-secondary" disabled>Full</button>`
                     : `<button class="btn btn-sm btn-primary" onclick="attendeeDashboard.confirmRSVPToEvent(${event.id}, '${event.title.replace(/'/g, "\\'")}')">RSVP</button>`;
 
+                const eventImage = renderEventImage(event);
+                const eventFee = renderEventFee(event.fee);
+
                 return `
                     <div class="event-card">
+                        ${eventImage}
                         <div class="event-card-header">
                             <div class="event-card-title">${event.title}</div>
                             <div class="event-card-meta">
                                 <span><i class="fas fa-calendar"></i> ${this.formatDateTime(event.dateTime)}</span>
                                 <span><i class="fas fa-map-marker-alt"></i> ${event.location}</span>
-                                <span><i class="fas fa-users"></i> ${event.currentRSVPs}/${event.maxCapacity} filled</span>
+                                <span><i class="fas fa-users"></i> ${event.currentRSVPs}/${event.maxCapacity} capacity</span>
+                                ${eventFee}
                             </div>
                             <div class="event-card-description">${event.description || 'No description available'}</div>
                         </div>
@@ -455,16 +453,40 @@ class AttendeeDashboard {
             const event = await api.getEventById(eventId);
             const rsvpCount = await api.getRSVPCount(eventId);
 
+            const eventImage = event.imageUrl
+                ? `<div class="modal-event-image">
+                     <img src="${event.imageUrl}"
+                          alt="${event.title}"
+                          onclick="zoomImage('${event.imageUrl}', '${event.title.replace(/'/g, "\\'")}')">
+                     <div class="image-zoom-hint">
+                         <i class="fas fa-search-plus"></i> Click to zoom
+                     </div>
+                   </div>`
+                : '';
+
+            const eventFee = event.fee && event.fee > 0
+                ? `<p><strong>Fee:</strong> Rs. ${parseFloat(event.fee).toFixed(2)}</p>`
+                : '<p><strong>Fee:</strong> Free</p>';
+
+            const paymentInfo = event.fee && event.fee > 0
+                ? '<p><strong>Payment:</strong> Payment details will be provided after RSVP confirmation</p>'
+                : '';
+
             document.getElementById('modal-event-title').textContent = event.title;
             document.getElementById('modal-event-content').innerHTML = `
-                <div class="event-details">
-                    <p><strong>Description:</strong> ${event.description || 'No description available'}</p>
-                    <p><strong>Date & Time:</strong> ${this.formatDateTime(event.dateTime)}</p>
-                    <p><strong>Location:</strong> ${event.location}</p>
-                    <p><strong>Capacity:</strong> ${event.maxCapacity}</p>
-                    <p><strong>Current RSVPs:</strong> ${rsvpCount.confirmed || 0}</p>
-                    <p><strong>Available Spots:</strong> ${event.maxCapacity - (rsvpCount.confirmed || 0)}</p>
-                    <p><strong>Organizer:</strong> ${event.organizer?.username || 'Unknown'}</p>
+                <div class="event-details scrollable-content">
+                    ${eventImage}
+                    <div class="event-info">
+                        <p><strong>Description:</strong> ${event.description || 'No description available'}</p>
+                        <p><strong>Date & Time:</strong> ${this.formatDateTime(event.dateTime)}</p>
+                        <p><strong>Location:</strong> ${event.location}</p>
+                        <p><strong>Capacity:</strong> ${event.maxCapacity}</p>
+                        <p><strong>Current RSVPs:</strong> ${rsvpCount.confirmed || 0}</p>
+                        <p><strong>Available Spots:</strong> ${event.maxCapacity - (rsvpCount.confirmed || 0)}</p>
+                        ${eventFee}
+                        ${paymentInfo}
+                        <p><strong>Organizer:</strong> ${event.organizer?.username || 'Unknown'}</p>
+                    </div>
                 </div>
             `;
 
@@ -474,6 +496,9 @@ class AttendeeDashboard {
             showToast('Failed to load event details', 'error');
         }
     }
+
+
+
 
     setupEventListeners() {
         const searchInput = document.getElementById('discover-search');
@@ -573,6 +598,7 @@ class AttendeeDashboard {
             })
         );
 
+        // In your loadDiscoverEvents method, update the event card generation:
         container.innerHTML = eventsWithCounts.map(event => {
             const statusClass = event.isAtCapacity ? 'not-available' : 'upcoming';
             const statusText = event.isAtCapacity ? 'Not Available' : 'Available';
@@ -580,14 +606,19 @@ class AttendeeDashboard {
                 ? `<button class="btn btn-sm btn-secondary" disabled>Full</button>`
                 : `<button class="btn btn-sm btn-primary" onclick="attendeeDashboard.confirmRSVPToEvent(${event.id}, '${event.title.replace(/'/g, "\\'")}')">RSVP</button>`;
 
+            const eventImage = renderEventImage(event);
+            const eventFee = renderEventFee(event.fee);
+
             return `
                 <div class="event-card">
+                    ${eventImage}
                     <div class="event-card-header">
                         <div class="event-card-title">${event.title}</div>
                         <div class="event-card-meta">
                             <span><i class="fas fa-calendar"></i> ${this.formatDateTime(event.dateTime)}</span>
                             <span><i class="fas fa-map-marker-alt"></i> ${event.location}</span>
                             <span><i class="fas fa-users"></i> ${event.currentRSVPs}/${event.maxCapacity} capacity</span>
+                            ${eventFee}
                         </div>
                         <div class="event-card-description">${event.description || 'No description available'}</div>
                     </div>
@@ -669,6 +700,77 @@ function logout() {
 function closeModal(modalId) {
     hideModal(modalId);
 }
+
+// Enhanced image display function - corrected overlay positioning
+function renderEventImage(event) {
+    if (!event.imageUrl) {
+        return '';
+    }
+
+    return `
+        <div class="event-image-container">
+            <img src="${event.imageUrl}"
+                 alt="${event.title}"
+                 class="event-image"
+                 onclick="zoomImage('${event.imageUrl}', '${event.title.replace(/'/g, "\\'")}')">
+            <div class="zoom-overlay">
+                <i class="fas fa-search-plus"></i>
+                <span>Click to zoom</span>
+            </div>
+        </div>
+    `;
+}
+
+
+// Add image zoom functionality
+function zoomImage(imageUrl, title) {
+    const modal = document.createElement('div');
+    modal.className = 'image-zoom-modal';
+    modal.innerHTML = `
+        <div class="image-zoom-overlay" onclick="closeImageZoom()">
+            <div class="image-zoom-container">
+                <div class="image-zoom-header">
+                    <h3>${title}</h3>
+                    <button class="zoom-close" onclick="closeImageZoom()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="image-zoom-content">
+                    <img src="${imageUrl}"
+                         alt="${title}"
+                         class="zoomed-image"
+                         onload="this.style.opacity='1'"
+                         onerror="this.src=''; this.alt='Image not available';">
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.style.display = 'flex';
+
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+}
+
+function closeImageZoom() {
+    const modal = document.querySelector('.image-zoom-modal');
+    if (modal) {
+        modal.remove();
+        document.body.style.overflow = 'auto';
+    }
+}
+
+// Enhanced fee display function
+function renderEventFee(fee) {
+    if (!fee || fee === 0) {
+        return '<span class="event-fee free">Free</span>';
+    }
+
+    const formattedFee = parseFloat(fee).toFixed(2);
+    return `<span class="event-fee paid">Rs. ${formattedFee}</span>`;
+}
+
 
 // Initialize dashboard when page loads
 document.addEventListener('DOMContentLoaded', () => {

@@ -456,6 +456,188 @@
         color: #dc2626;
     }
 
+    .event-image-container {
+        position: relative;
+        width: 100%;
+        height: 200px;
+        overflow: hidden;
+        border-radius: 8px 8px 0 0;
+        cursor: pointer;
+    }
+
+    .event-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+        display: block; /* Ensure proper display */
+    }
+
+    .event-image-container:hover .event-image {
+        transform: scale(1.05);
+    }
+
+    .zoom-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        color: white;
+        font-size: 0.9rem;
+        pointer-events: none; /* Allow click to pass through to image */
+    }
+
+    .event-image-container:hover .zoom-overlay {
+        opacity: 1;
+    }
+
+    .zoom-overlay i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .zoom-overlay span {
+        font-weight: 500;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Image Zoom Modal */
+    .image-zoom-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 3000;
+        backdrop-filter: blur(5px);
+    }
+
+    .image-zoom-container {
+        position: relative;
+        max-width: 90vw;
+        max-height: 90vh;
+        background: white;
+        border-radius: 12px;
+        overflow: visible; /* Changed from hidden */
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* For the title header */
+    .image-zoom-header {
+        position: relative;
+        z-index: 10000;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+
+    .image-zoom-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+
+    .image-zoom-header h3 {
+        margin: 0;
+        color: var(--text-primary);
+    }
+
+    .zoom-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text-secondary);
+        padding: 0.5rem;
+        border-radius: 50%;
+        transition: background-color 0.3s;
+    }
+
+    .zoom-close:hover {
+        background: var(--border-color);
+        color: var(--text-primary);
+    }
+
+    .image-zoom-content {
+        flex: 1;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: auto;
+        min-height: 300px;
+    }
+
+    .zoomed-image {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        border-radius: 8px;
+    }
+
+    .event-fee {
+        background: #28a745;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .event-fee.free {
+        background: #17a2b8;
+    }
+
+    .event-card {
+        overflow: hidden;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        position: relative; /* Ensure proper stacking context */
+    }
+
+    .event-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    /* Ensure card header doesn't overlap image */
+    .event-card-header {
+        position: relative;
+        z-index: 1;
+        background: white;
+        padding: 1rem;
+    }
+
+
     /* Forms */
     .event-form {
         background: var(--bg-primary);
@@ -701,6 +883,152 @@
         font-size: 1rem;
     }
 
+    /* Attendees Section Styling */
+    .attendees-section {
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .attendees-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .attendees-header h4 {
+        margin: 0;
+        color: var(--text-primary);
+    }
+
+    .attendee-preview {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .attendee-name {
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+
+    .attendee-email {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .more-attendees {
+        text-align: center;
+        color: var(--text-secondary);
+        font-style: italic;
+        margin: 0.5rem 0;
+    }
+
+    .no-attendees {
+        text-align: center;
+        color: var(--text-secondary);
+        font-style: italic;
+        margin: 1rem 0;
+    }
+
+    /* Attendees Table Modal */
+    .attendees-table-container {
+        max-height: 80vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .attendees-table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 1rem;
+    }
+
+    .table-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .attendees-table-content {
+        flex: 1;
+        overflow-y: auto;
+        margin-bottom: 1rem;
+    }
+
+    .attendees-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1rem;
+    }
+
+    .attendees-table th,
+    .attendees-table td {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .attendees-table th {
+        background-color: var(--bg-secondary);
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .attendees-table tr:hover {
+        background-color: var(--bg-light);
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .status-badge.confirmed {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .attendees-table-footer {
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        gap: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .attendees-table-footer p {
+        margin: 0;
+        color: var(--text-secondary);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .attendees-header {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: stretch;
+        }
+
+        .table-actions {
+            justify-content: center;
+        }
+
+        .attendees-table-footer {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    }
+
+
     /* Modals */
     .modal {
         display: none;
@@ -758,6 +1086,95 @@
         color: var(--text-primary);
     }
 
+    /* Modal Event Image */
+    .modal-event-image {
+        position: relative;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+
+    .modal-event-image img {
+        max-width: 100%;
+        height: 200px;
+        object-fit: cover;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+    }
+
+    .modal-event-image img:hover {
+        transform: scale(1.02);
+    }
+
+    .image-zoom-hint {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .modal-event-image:hover .image-zoom-hint {
+        opacity: 1;
+    }
+
+    /* Scrollable Event Details */
+    .scrollable-content {
+        max-height: 60vh;
+        overflow-y: auto;
+        padding-right: 0.5rem;
+    }
+
+    .scrollable-content::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .scrollable-content::-webkit-scrollbar-track {
+        background: var(--bg-secondary);
+        border-radius: 3px;
+    }
+
+    .scrollable-content::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 3px;
+    }
+
+    .scrollable-content::-webkit-scrollbar-thumb:hover {
+        background: var(--text-secondary);
+    }
+
+    /* Event Info Section */
+    .event-info {
+        padding-top: 1rem;
+    }
+
+    .event-details p {
+        margin-bottom: 12px;
+        line-height: 1.6;
+    }
+
+    /* Update Modal Content for Better Scrolling */
+    .modal-content.large {
+        max-width: 800px;
+        max-height: 90vh;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+        max-height: calc(90vh - 120px);
+        overflow: hidden;
+    }
+
+    /* Remove placeholder styles */
+    .event-image-placeholder {
+        display: none !important;
+    }
+
     .event-details p {
         margin-bottom: 10px;
     }
@@ -766,6 +1183,8 @@
         padding: 5px 0;
         border-bottom: 1px solid #eee;
     }
+
+
 
     /* Loading and Toast */
     .loading-overlay {
@@ -897,3 +1316,22 @@
         }
     }
 
+    /* Responsive Design for Image Zoom */
+    @media (max-width: 768px) {
+        .image-zoom-container {
+            max-width: 95vw;
+            max-height: 95vh;
+        }
+
+        .image-zoom-header {
+            padding: 0.75rem 1rem;
+        }
+
+        .image-zoom-header h3 {
+            font-size: 1.1rem;
+        }
+
+        .scrollable-content {
+            max-height: 50vh;
+        }
+    }

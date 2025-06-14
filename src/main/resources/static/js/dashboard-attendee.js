@@ -4,6 +4,7 @@ class AttendeeDashboard {
         this.currentUser = null;
         this.myRSVPs = [];
         this.allEvents = [];
+        this.searchTimeout = null;
         this.init();
     }
 
@@ -179,23 +180,34 @@ class AttendeeDashboard {
                 return;
             }
 
+            // Filter out past events and user's existing RSVPs
+            const now = new Date();
             const rsvpEventIds = this.myRSVPs
                 .filter(rsvp => rsvp.event && rsvp.event.id)
                 .map(rsvp => rsvp.event.id);
 
-            const availableEvents = this.allEvents.filter(event =>
-                event && event.id && !rsvpEventIds.includes(event.id)
-            );
+            const availableEvents = this.allEvents.filter(event => {
+                if (!event || !event.id || !event.dateTime) return false;
+
+                // Check if event is in the future
+                const isFuture = new Date(event.dateTime) > now;
+
+                // Check if user hasn't already RSVP'd
+                const notRSVPd = !rsvpEventIds.includes(event.id);
+
+                return isFuture && notRSVPd;
+            });
 
             const sortedEvents = availableEvents.sort((a, b) =>
                 new Date(a.dateTime) - new Date(b.dateTime)
             );
 
             if (sortedEvents.length === 0) {
-                container.innerHTML = '<p class="no-data">No new events available</p>';
+                container.innerHTML = '<p class="no-data">No upcoming events available</p>';
                 return;
             }
 
+            // Rest of the method remains the same...
             const eventsWithCounts = await Promise.all(
                 sortedEvents.map(async (event) => {
                     try {
@@ -230,7 +242,7 @@ class AttendeeDashboard {
                             <div class="event-card-meta">
                                 <span><i class="fas fa-calendar"></i> ${this.formatDateTime(event.dateTime)}</span>
                                 <span><i class="fas fa-map-marker-alt"></i> ${event.location}</span>
-                                <span><i class="fas fa-users"></i> ${event.currentRSVPs}/${event.maxCapacity} capacity</span>
+                                <span><i class="fas fa-users"></i> ${event.currentRSVPs}/${event.maxCapacity} filled</span>
                             </div>
                             <div class="event-card-description">${event.description || 'No description available'}</div>
                         </div>
@@ -390,7 +402,7 @@ class AttendeeDashboard {
     }
 
     async confirmCancelRSVP(eventId, eventTitle) {
-        const confirmed = confirm(`Are you sure you want to cancel your RSVP for "${eventTitle}"?\n\nYou can RSVP again later if you change your mind depending on availability.`);
+        const confirmed = confirm(`Are you sure you want to cancel your RSVP for "${eventTitle}"?\n\nFeel free to RSVP later if you change your mind, subject to availability.`);
         if (confirmed) {
             await this.cancelRSVP(eventId);
         }
@@ -484,7 +496,22 @@ class AttendeeDashboard {
         try {
             showLoading();
             const searchResults = await api.searchEvents(keyword);
-            await this.renderFilteredDiscoverEvents(searchResults);
+
+            // Filter out past events from search results
+            const now = new Date();
+            const upcomingSearchResults = searchResults.filter(event => {
+                if (!event || !event.dateTime) return false;
+                try {
+                    return new Date(event.dateTime) > now;
+                } catch (error) {
+                    console.error('Error parsing event date:', error);
+                    return false;
+                }
+            });
+
+            console.log(`Search found ${searchResults.length} total events, ${upcomingSearchResults.length} upcoming events`);
+
+            await this.renderFilteredDiscoverEvents(upcomingSearchResults);
         } catch (error) {
             console.error('Search failed:', error);
             showToast('Search failed', 'error');
@@ -493,22 +520,39 @@ class AttendeeDashboard {
         }
     }
 
+
     async renderFilteredDiscoverEvents(events) {
         const container = document.getElementById('discover-events-grid');
         if (!container) return;
 
         if (!events || events.length === 0) {
-            container.innerHTML = '<p class="no-data">No events found</p>';
+            container.innerHTML = '<p class="no-data">No upcoming events found</p>';
             return;
         }
+
+        // Additional filter to ensure only upcoming events (safety check)
+        const now = new Date();
+        const upcomingEvents = events.filter(event => {
+            if (!event || !event.dateTime) return false;
+            try {
+                return new Date(event.dateTime) > now;
+            } catch (error) {
+                return false;
+            }
+        });
 
         const rsvpEventIds = this.myRSVPs
             .filter(rsvp => rsvp.event && rsvp.event.id)
             .map(rsvp => rsvp.event.id);
 
-        const availableEvents = events.filter(event =>
+        const availableEvents = upcomingEvents.filter(event =>
             event && event.id && !rsvpEventIds.includes(event.id)
         );
+
+        if (availableEvents.length === 0) {
+            container.innerHTML = '<p class="no-data">No upcoming events available</p>';
+            return;
+        }
 
         const eventsWithCounts = await Promise.all(
             availableEvents.map(async (event) => {
@@ -561,6 +605,7 @@ class AttendeeDashboard {
         }).join('');
     }
 
+
     formatDateTime(dateTimeString) {
         if (!dateTimeString) return 'Date TBD';
 
@@ -572,6 +617,29 @@ class AttendeeDashboard {
         } catch (error) {
             console.error('Error formatting date:', error);
             return 'Date Error';
+        }
+    }
+
+    setupEventListeners() {
+        const searchInput = document.getElementById('discover-search');
+        if (searchInput) {
+            // Remove the keypress event listener for Enter key
+            // Add input event listener for real-time search
+            searchInput.addEventListener('input', (e) => {
+                // Add a small delay to avoid too many API calls
+                clearTimeout(this.searchTimeout);
+                this.searchTimeout = setTimeout(() => {
+                    this.searchEvents();
+                }, 300); // 300ms delay
+            });
+
+            // Optional: Keep Enter key functionality as well
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    clearTimeout(this.searchTimeout);
+                    this.searchEvents();
+                }
+            });
         }
     }
 }

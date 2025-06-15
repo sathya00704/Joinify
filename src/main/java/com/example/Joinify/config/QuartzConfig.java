@@ -10,6 +10,7 @@ public class QuartzConfig {
 
     @Bean
     public JobDetail eventReminderJobDetail() {
+        System.out.println("Creating EventReminderJob JobDetail bean");
         return JobBuilder.newJob(EventReminderJob.class)
                 .withIdentity("eventReminderJob")
                 .withDescription("Send 24-hour event reminders")
@@ -19,12 +20,13 @@ public class QuartzConfig {
 
     @Bean
     public Trigger eventReminderTrigger() {
-        // Run every 4 hours to check for events in the next 24 hours
+        System.out.println("Creating EventReminderJob Trigger bean");
+        // Run every 30 minutes for testing (change back to 2 hours later)
         return TriggerBuilder.newTrigger()
                 .forJob(eventReminderJobDetail())
                 .withIdentity("eventReminderTrigger")
                 .withDescription("Trigger for 24-hour event reminders")
-                .withSchedule(CronScheduleBuilder.cronSchedule("0 0 */4 * * ?")) // Every 4 hours
+                .withSchedule(CronScheduleBuilder.cronSchedule("0 */30 * * * ?")) // Every 30 minutes for testing
                 .build();
     }
 }

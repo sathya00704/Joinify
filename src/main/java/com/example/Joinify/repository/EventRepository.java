@@ -105,4 +105,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     // JOIN FETCH for organizer's past events
     @Query("SELECT e FROM Event e JOIN FETCH e.organizer WHERE e.organizer.id = :organizerId AND e.dateTime < :currentDateTime ORDER BY e.dateTime DESC")
     List<Event> findPastEventsByOrganizerWithOrganizer(@Param("organizerId") Long organizerId, @Param("currentDateTime") LocalDateTime currentDateTime);
+
+
 }

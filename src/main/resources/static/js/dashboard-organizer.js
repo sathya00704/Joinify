@@ -33,7 +33,6 @@ class OrganizerDashboard {
     async loadDashboardData() {
         showLoading();
         try {
-            // Load organizer's events
             const [myEvents, userStats] = await Promise.all([
                 api.getMyEvents(),
                 api.getUserStats()
@@ -45,6 +44,7 @@ class OrganizerDashboard {
             this.loadRecentEvents();
             this.loadMyEvents();
             this.loadAttendeeEventSelect();
+            this.loadReminderEventSelect();
             this.initializeCharts();
         } catch (error) {
             console.error('Error loading dashboard data:', error);
@@ -762,6 +762,11 @@ class OrganizerDashboard {
                 this.searchMyEvents(e.target.value);
             });
         }
+
+        document.getElementById('send-reminder-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.sendEventReminder();
+            });
     }
 
     applyEventFilter(filter) {
@@ -937,6 +942,116 @@ class OrganizerDashboard {
         // Add active class to corresponding menu item
         document.querySelector(`[onclick="showSection('${sectionName}')"]`).classList.add('active');
     }
+
+    // Load events for reminder selection
+    loadReminderEventSelect() {
+        const select = document.getElementById('reminder-event-select');
+        const now = new Date();
+
+        // Filter upcoming events only
+        const upcomingEvents = this.myEvents.filter(event =>
+            new Date(event.dateTime) > now
+        );
+
+        select.innerHTML = '<option value="">Choose an event...</option>' +
+            upcomingEvents.map(event =>
+                `<option value="${event.id}">${event.title} - ${this.formatDateTime(event.dateTime)}</option>`
+            ).join('');
+
+        // Add event listener for attendee count display
+        select.addEventListener('change', async (e) => {
+            if (e.target.value) {
+                await this.displayAttendeeCount(e.target.value);
+            } else {
+                document.getElementById('attendee-count-display').innerHTML =
+                    '<p>Select an event to see attendee count</p>';
+            }
+        });
+    }
+
+    // Display attendee count for selected event
+    async displayAttendeeCount(eventId) {
+        try {
+            const [attendees, rsvpCount] = await Promise.all([
+                api.getEventAttendees(eventId),
+                api.getRSVPCount(eventId)
+            ]);
+
+            const container = document.getElementById('attendee-count-display');
+            container.innerHTML = `
+                <div class="attendee-count-info">
+                    <h4>Attendee Information</h4>
+                    <p><strong>Confirmed Attendees:</strong> ${rsvpCount.confirmed || 0}</p>
+                    <p><strong>Total RSVPs:</strong> ${rsvpCount.total || 0}</p>
+                    <p><strong>Reminder will be sent to:</strong> ${attendees.length} attendees</p>
+                </div>
+            `;
+        } catch (error) {
+            console.error('Error loading attendee count:', error);
+            document.getElementById('attendee-count-display').innerHTML =
+                '<p class="error">Error loading attendee information</p>';
+        }
+    }
+
+    // Update your sendEventReminder method
+    async sendEventReminder() {
+        const form = document.getElementById('send-reminder-form');
+        const formData = new FormData(form);
+
+        const eventId = formData.get('eventId');
+        const message = formData.get('message');
+
+        if (!eventId) {
+            showToast('Please select an event', 'error');
+            return;
+        }
+
+        const confirmed = confirm('Are you sure you want to send reminder emails to all confirmed attendees?');
+        if (!confirmed) return;
+
+        try {
+            showLoading();
+
+            // Get token from localStorage
+            const token = localStorage.getItem('token');
+            console.log('Token being sent:', token); // Debug log
+
+            if (!token) {
+                showToast('Authentication required. Please login again.', 'error');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const response = await fetch(`/api/events/${eventId}/send-reminder`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` // Ensure Bearer prefix
+                },
+                body: JSON.stringify({ message: message })
+            });
+
+            if (response.ok) {
+                const result = await response.text();
+                showToast(result, 'success');
+                form.reset();
+                document.getElementById('attendee-count-display').innerHTML =
+                    '<p>Select an event to see attendee count</p>';
+            } else if (response.status === 401 || response.status === 403) {
+                showToast('Authentication failed. Please login again.', 'error');
+                localStorage.removeItem('token');
+                window.location.href = 'index.html';
+            } else {
+                const error = await response.text();
+                showToast(error || 'Failed to send reminder', 'error');
+            }
+        } catch (error) {
+            console.error('Error sending reminder:', error);
+            showToast('Failed to send reminder', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
 }
 
 // Global functions
@@ -964,6 +1079,13 @@ function clearForm(formId) {
     form.querySelector('button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Create Event';
 }
 
+// Clear reminder form
+function clearReminderForm() {
+    document.getElementById('send-reminder-form').reset();
+    document.getElementById('attendee-count-display').innerHTML =
+        '<p>Select an event to see attendee count</p>';
+}
+
 // Initialize dashboard when page loads
 let organizerDashboard;
 document.addEventListener('DOMContentLoaded', () => {
@@ -975,5 +1097,29 @@ window.onclick = function(event) {
     const modal = document.getElementById('event-modal');
     if (event.target === modal) {
         hideModal('event-modal');
+    }
+}
+
+// Add this debug function to your dashboard
+function debugTokenInfo() {
+    const token = localStorage.getItem('token');
+    console.log('=== TOKEN DEBUG INFO ===');
+    console.log('Token exists:', !!token);
+    console.log('Token length:', token ? token.length : 0);
+    console.log('Token format valid:', token ? token.split('.').length === 3 : false);
+    console.log('Token preview:', token ? token.substring(0, 50) + '...' : 'No token');
+
+    if (token) {
+        try {
+            const parts = token.split('.');
+            console.log('Token parts:', parts.length);
+            if (parts.length === 3) {
+                const payload = JSON.parse(atob(parts[1]));
+                console.log('Token payload:', payload);
+                console.log('Token expires:', new Date(payload.exp * 1000));
+            }
+        } catch (e) {
+            console.error('Error parsing token:', e);
+        }
     }
 }

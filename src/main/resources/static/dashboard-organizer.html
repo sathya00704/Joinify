@@ -37,7 +37,7 @@
     </div>
 </nav>
 
-<!-- Sidebar -->
+<!--Sidebar-->
 <aside class="sidebar">
     <div class="sidebar-menu">
         <a href="#overview" class="menu-item active" onclick="showSection('overview')">
@@ -45,23 +45,28 @@
             <span>Overview</span>
         </a>
         <a href="#events" class="menu-item" onclick="showSection('events')">
-            <i class="fas fa-calendar-check"></i>
+            <i class="fas fa-calendar"></i>
             <span>My Events</span>
         </a>
         <a href="#create-event" class="menu-item" onclick="showSection('create-event')">
-            <i class="fas fa-plus-circle"></i>
+            <i class="fas fa-plus"></i>
             <span>Create Event</span>
-        </a>
-        <a href="#attendees" class="menu-item" onclick="showSection('attendees')">
-            <i class="fas fa-users"></i>
-            <span>Attendees</span>
         </a>
         <a href="#analytics" class="menu-item" onclick="showSection('analytics')">
             <i class="fas fa-chart-line"></i>
             <span>Analytics</span>
         </a>
+        <a href="#attendees" class="menu-item" onclick="showSection('attendees')">
+            <i class="fas fa-users"></i>
+            <span>Attendees</span>
+        </a>
+        <a href="#send-reminder" class="menu-item" onclick="showSection('send-reminder')">
+            <i class="fas fa-paper-plane"></i>
+            <span>Send Reminders</span>
+        </a>
     </div>
 </aside>
+
 
 <!-- Main Content -->
 <main class="main-content">
@@ -259,6 +264,51 @@
                 <h3>Events by Status</h3>
                 <canvas id="status-chart"></canvas>
             </div>
+        </div>
+    </section>
+
+    <!-- Send Reminder Section -->
+    <section id="send-reminder-section" class="content-section">
+        <div class="section-header">
+            <h1>Send Event Reminders</h1>
+            <p>Send custom reminders to your event attendees</p>
+        </div>
+
+        <div class="reminder-form-container">
+            <form id="send-reminder-form">
+                <div class="form-group">
+                    <label for="reminder-event-select">Select Event</label>
+                    <select id="reminder-event-select" name="eventId" required>
+                        <option value="">Choose an event...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="reminder-message">Custom Message</label>
+                    <textarea id="reminder-message"
+                              name="message"
+                              rows="4"
+                              placeholder="Enter a custom message for your attendees (optional)... Hint: You can add the email id and mobile number of point of contact"
+                              maxlength="500"></textarea>
+                    <small class="form-help">Optional: Add a personal message to your reminder email.
+                    The event title, location, date, time, location, fee, organizer name will be automatically added to the email</small>
+                </div>
+
+                <div class="form-group">
+                    <div id="attendee-count-display" class="attendee-info">
+                        <p>Select an event to see attendee count</p>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i> Send Reminder
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="clearReminderForm()">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
+                </div>
+            </form>
         </div>
     </section>
 </main>

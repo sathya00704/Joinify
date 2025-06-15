@@ -826,6 +826,50 @@
         gap: 0.5rem;
     }
 
+    /* Reminder Section Styles */
+    .reminder-form-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .attendee-count-info {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 6px;
+        border-left: 4px solid #007bff;
+    }
+
+    .attendee-count-info h4 {
+        margin: 0 0 0.5rem 0;
+        color: #007bff;
+    }
+
+    .attendee-count-info p {
+        margin: 0.25rem 0;
+        color: #495057;
+    }
+
+    .attendee-info {
+        margin: 1rem 0;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+
+    .error {
+        color: #dc3545;
+        font-style: italic;
+    }
+
+
     /* Buttons */
     .btn {
         display: inline-flex;

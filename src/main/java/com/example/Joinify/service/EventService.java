@@ -182,14 +182,6 @@ public class EventService {
         return (int) Math.max(0, event.getMaxCapacity() - confirmedCount);
     }
 
-    // Get confirmed attendee count for an event
-    public long getConfirmedAttendeeCount(Long eventId) {
-        if (eventId == null) {
-            throw new BadRequestException("Event ID cannot be null");
-        }
-        return rsvpRepository.countConfirmedRSVPsByEventId(eventId);
-    }
-
     // Update event details
     public Event updateEvent(Long eventId, Event updatedEvent, String organizerUsername) {
         // Check if event exists
@@ -375,6 +367,72 @@ public class EventService {
         } catch (Exception e) {
             // Log error but don't fail the validation
             System.err.println("Could not validate RSVP capacity: " + e.getMessage());
+        }
+    }
+
+    public String sendEventReminder(Long eventId, String customMessage, String organizerUsername) {
+        // Validate event exists
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
+
+        // Validate organizer authorization
+        if (!event.getOrganizer().getUsername().equals(organizerUsername)) {
+            throw new UnauthorizedException("You can only send reminders for your own events");
+        }
+
+        // Validate event is in the future
+        if (event.getDateTime().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Cannot send reminders for past events");
+        }
+
+        // Get confirmed attendees
+        List<User> confirmedAttendees = rsvpRepository.findConfirmedAttendeesByEventId(eventId);
+
+        if (confirmedAttendees.isEmpty()) {
+            throw new BadRequestException("No confirmed attendees to send reminders to");
+        }
+
+        // Extract email addresses
+        List<String> attendeeEmails = confirmedAttendees.stream()
+                .map(User::getEmail)
+                .collect(Collectors.toList());
+
+        // Validate custom message length
+        if (customMessage != null && customMessage.length() > 500) {
+            throw new BadRequestException("Custom message cannot exceed 500 characters");
+        }
+
+        try {
+            // Send reminder emails
+            emailService.sendManualEventReminder(event, attendeeEmails, customMessage);
+
+            return "Reminder sent to " + attendeeEmails.size() + " attendees successfully";
+
+        } catch (Exception e) {
+            System.err.println("Failed to send reminder emails: " + e.getMessage());
+            throw new RuntimeException("Failed to send reminder emails", e);
+        }
+    }
+
+    // Helper method to get attendee count for an event
+    public int getConfirmedAttendeeCount(Long eventId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
+
+        return rsvpRepository.findConfirmedAttendeesByEventId(eventId).size();
+    }
+
+    // Helper method to validate if user can send reminders for event
+    public void validateReminderPermission(Long eventId, String username) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
+
+        if (!event.getOrganizer().getUsername().equals(username)) {
+            throw new UnauthorizedException("You can only send reminders for your own events");
+        }
+
+        if (event.getDateTime().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Cannot send reminders for past events");
         }
     }
 }

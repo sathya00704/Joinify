@@ -16,7 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -306,4 +308,53 @@ public class EventController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    // Send manual reminder to attendees
+    @PostMapping("/{eventId}/send-reminder")
+    @PreAuthorize("hasRole('ORGANIZER')")
+    public ResponseEntity<String> sendEventReminder(@PathVariable Long eventId,
+                                                    @RequestBody Map<String, String> request,
+                                                    Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            String customMessage = request.get("message");
+
+            // Use service method with exception handling
+            String result = eventService.sendEventReminder(eventId, customMessage, username);
+
+            return ResponseEntity.ok(result);
+
+        } catch (BadRequestException | UnauthorizedException | ResourceNotFoundException e) {
+            throw e; // Let GlobalExceptionHandler handle these
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to send reminder", e);
+        }
+    }
+
+    // Additional endpoint to get attendee count before sending
+    @GetMapping("/{eventId}/attendee-count")
+    @PreAuthorize("hasRole('ORGANIZER')")
+    public ResponseEntity<Map<String, Object>> getAttendeeCount(@PathVariable Long eventId,
+                                                                Authentication authentication) {
+        try {
+            String username = authentication.getName();
+
+            // Validate permission first
+            eventService.validateReminderPermission(eventId, username);
+
+            int confirmedCount = eventService.getConfirmedAttendeeCount(eventId);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("confirmedAttendees", confirmedCount);
+            response.put("canSendReminder", confirmedCount > 0);
+
+            return ResponseEntity.ok(response);
+
+        } catch (BadRequestException | UnauthorizedException | ResourceNotFoundException e) {
+            throw e; // Let GlobalExceptionHandler handle these
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get attendee count", e);
+        }
+    }
+
 }

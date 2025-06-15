@@ -29,52 +29,60 @@ class ApiService {
     }
 
     // Enhanced Generic API request method with better error handling
+    // Update your api.js request method
     async request(endpoint, options = {}) {
-        const url = `${this.baseURL}${endpoint}`;
-        console.log('Making API request to:', url);
+        const token = localStorage.getItem('token');
+
+        // Debug logging
+        console.log('Making API request to:', `${this.baseURL}${endpoint}`);
+        console.log('Token:', token ? `${token.substring(0, 20)}...` : 'No token');
 
         const config = {
             headers: {
                 'Content-Type': 'application/json',
-                ...this.getAuthHeaders(),
                 ...options.headers
             },
             ...options
         };
 
+        // Add Authorization header if token exists
+        if (token) {
+            // Ensure token is properly formatted
+            if (token.includes('.')) {
+                config.headers.Authorization = `Bearer ${token}`;
+            } else {
+                console.error('Invalid token format:', token);
+                localStorage.removeItem('token');
+                window.location.href = 'index.html';
+                return;
+            }
+        }
+
         try {
-            const response = await fetch(url, config);
+            const response = await fetch(`${this.baseURL}${endpoint}`, config);
+
             console.log('API Response status:', response.status);
 
-            // Handle non-JSON responses (like for boolean endpoints)
-            const contentType = response.headers.get('content-type');
-            let data;
-
-            if (contentType && contentType.includes('application/json')) {
-                data = await response.json();
-            } else {
-                data = await response.text();
+            if (response.status === 401 || response.status === 403) {
+                localStorage.removeItem('token');
+                window.location.href = 'index.html';
+                throw new Error('Authentication failed');
             }
-
-            console.log('API Response data:', data);
 
             if (!response.ok) {
-                const errorMessage = typeof data === 'object' ? data.message : data;
-                throw new Error(errorMessage || `HTTP ${response.status}: ${response.statusText}`);
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
             }
 
+            const data = await response.json();
+            console.log('API Response data:', data);
             return data;
         } catch (error) {
-            console.error('API Error:', error);
-
-            // Enhanced error handling for better debugging
-            if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                throw new Error('Network error: Cannot connect to backend server. Please ensure Spring Boot is running on port 8080.');
-            }
-
+            console.error('API request failed:', error);
             throw error;
         }
     }
+
 
     // Auth API methods
     async register(userData) {

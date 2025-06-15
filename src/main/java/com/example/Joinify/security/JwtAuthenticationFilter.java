@@ -1,6 +1,8 @@
 package com.example.Joinify.security;
 
 import com.example.Joinify.util.JwtUtil;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,7 +22,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
-    private JwtUtil jwtUtil;
+    private JwtUtil jwtTokenUtil;
 
     @Autowired
     private UserDetailsService userDetailsService;
@@ -28,47 +30,63 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+                                    FilterChain chain) throws ServletException, IOException {
 
-        // Extract JWT token from Authorization header
-        final String authorizationHeader = request.getHeader("Authorization");
+        final String requestTokenHeader = request.getHeader("Authorization");
 
         String username = null;
-        String jwt = null;
+        String jwtToken = null;
 
-        // Check if Authorization header contains Bearer token
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            jwt = authorizationHeader.substring(7); // Remove "Bearer " prefix
-            try {
-                username = jwtUtil.extractUsername(jwt);
-            } catch (Exception e) {
-                logger.error("Cannot extract username from JWT token: " + e.getMessage());
+        // JWT Token is in the form "Bearer token". Remove Bearer word and get only the Token
+        if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
+            jwtToken = requestTokenHeader.substring(7);
+
+            // Validate token format before processing
+            if (jwtToken.trim().isEmpty()) {
+                logger.error("JWT token is empty");
+            } else if (!isValidJwtFormat(jwtToken)) {
+                logger.error("JWT token format is invalid: " + jwtToken.substring(0, Math.min(20, jwtToken.length())) + "...");
+            } else {
+                try {
+                    // CHANGE: Use extractUsername instead of getUsernameFromToken
+                    username = jwtTokenUtil.extractUsername(jwtToken);
+                } catch (IllegalArgumentException e) {
+                    logger.error("Unable to get JWT Token", e);
+                } catch (ExpiredJwtException e) {
+                    logger.error("JWT Token has expired", e);
+                } catch (MalformedJwtException e) {
+                    logger.error("JWT Token is malformed", e);
+                } catch (Exception e) {
+                    logger.error("Cannot extract username from JWT token: " + e.getMessage());
+                }
             }
+        } else if (requestTokenHeader != null) {
+            logger.warn("JWT Token does not begin with Bearer String");
         }
 
-        // Validate the token using JwtUtil and set authentication
+        // Once we get the token validate it.
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
-            // Load user details from database
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
 
-            // Validate token
-            if (jwtUtil.validateToken(jwt, userDetails)) {
-
-                // Set authentication in SecurityContext
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
-
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+            // if token is valid configure Spring Security to manually set authentication
+            if (jwtTokenUtil.validateToken(jwtToken, userDetails)) {
+                UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken =
+                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                usernamePasswordAuthenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
             }
         }
+        chain.doFilter(request, response);
+    }
 
-        // Continue filter chain
-        filterChain.doFilter(request, response);
+    // Helper method to validate JWT format
+    private boolean isValidJwtFormat(String token) {
+        if (token == null || token.trim().isEmpty()) {
+            return false;
+        }
+
+        // JWT should have exactly 2 dots (3 parts: header.payload.signature)
+        long dotCount = token.chars().filter(ch -> ch == '.').count();
+        return dotCount == 2;
     }
 }

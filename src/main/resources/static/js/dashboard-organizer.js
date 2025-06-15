@@ -375,15 +375,48 @@ class OrganizerDashboard {
             document.getElementById('event-image-url').value = event.imageUrl || '';
             document.getElementById('event-fee').value = event.fee || '';
 
-            // Format datetime for input
+            // FIX: Format datetime correctly for local timezone
             const eventDate = new Date(event.dateTime);
-            const formattedDate = eventDate.toISOString().slice(0, 16);
+
+            // Get local timezone offset and adjust
+            const timezoneOffset = eventDate.getTimezoneOffset() * 60000;
+            const localDate = new Date(eventDate.getTime() - timezoneOffset);
+            const formattedDate = localDate.toISOString().slice(0, 16);
+
             document.getElementById('event-date').value = formattedDate;
 
             // Change form to edit mode
             const form = document.getElementById('create-event-form');
             form.dataset.editId = eventId;
+
+            // Update form heading
+            const formHeading = document.querySelector('#create-event-section .section-header h1');
+            if (formHeading) {
+                formHeading.textContent = 'Update Event';
+            }
+
+            // Update form description
+            const formDescription = document.querySelector('#create-event-section .section-header p');
+            if (formDescription) {
+                formDescription.textContent = 'Update your event details';
+            }
+
+            // Update submit button
             form.querySelector('button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Update Event';
+
+            // Add cancel button for edit mode
+            const formActions = document.querySelector('#create-event-section .form-actions');
+            if (formActions && !formActions.querySelector('.cancel-edit-btn')) {
+                const cancelButton = document.createElement('button');
+                cancelButton.type = 'button';
+                cancelButton.className = 'btn btn-secondary cancel-edit-btn';
+                cancelButton.innerHTML = '<i class="fas fa-times"></i> Cancel Edit';
+                cancelButton.onclick = () => {
+                    clearForm('create-event-form');
+                    this.showSection('events');
+                };
+                formActions.appendChild(cancelButton);
+            }
 
             this.showSection('create-event');
         } catch (error) {
@@ -392,12 +425,11 @@ class OrganizerDashboard {
         }
     }
 
+
+
     async updateEvent(eventId) {
         const form = document.getElementById('create-event-form');
         const formData = new FormData(form);
-
-        const rawImageUrl = formData.get('imageUrl');
-        const rawFee = formData.get('fee');
 
         const eventData = {
             title: formData.get('title'),
@@ -405,8 +437,8 @@ class OrganizerDashboard {
             dateTime: formData.get('dateTime'),
             location: formData.get('location'),
             maxCapacity: parseInt(formData.get('maxCapacity')),
-            imageUrl: rawImageUrl ? rawImageUrl.trim() : null,
-            fee: rawFee ? parseFloat(rawFee) : 0.00
+            imageUrl: formData.get('imageUrl') ? formData.get('imageUrl').trim() : null,
+            fee: formData.get('fee') ? parseFloat(formData.get('fee')) : 0.00
         };
 
         try {
@@ -417,6 +449,18 @@ class OrganizerDashboard {
             // Reset form to create mode
             form.reset();
             delete form.dataset.editId;
+
+            // Reset heading and button
+            const formHeading = document.querySelector('#create-event-section .section-header h1');
+            if (formHeading) {
+                formHeading.textContent = 'Create New Event';
+            }
+
+            const formDescription = document.querySelector('#create-event-section .section-header p');
+            if (formDescription) {
+                formDescription.textContent = 'Fill in the details to create a new event';
+            }
+
             form.querySelector('button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Create Event';
 
             await this.loadDashboardData();
@@ -428,6 +472,7 @@ class OrganizerDashboard {
             hideLoading();
         }
     }
+
 
     async deleteEvent(eventId) {
         if (!confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
@@ -1076,7 +1121,25 @@ function clearForm(formId) {
     const form = document.getElementById(formId);
     form.reset();
     delete form.dataset.editId;
+
+    // Reset headings and button
+    const formHeading = document.querySelector('#create-event-section .section-header h1');
+    if (formHeading) {
+        formHeading.textContent = 'Create New Event';
+    }
+
+    const formDescription = document.querySelector('#create-event-section .section-header p');
+    if (formDescription) {
+        formDescription.textContent = 'Fill in the details to create a new event';
+    }
+
     form.querySelector('button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Create Event';
+
+    // Remove cancel button if it exists
+    const cancelButton = document.querySelector('.cancel-edit-btn');
+    if (cancelButton) {
+        cancelButton.remove();
+    }
 }
 
 // Clear reminder form

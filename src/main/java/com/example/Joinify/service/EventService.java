@@ -17,6 +17,7 @@ import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -27,6 +28,12 @@ public class EventService {
 
     @Autowired
     private RSVPRepository rsvpRepository;
+
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
+    private UserService userService;
 
     // Create or update event
     public Event saveEvent(Event event) {
@@ -206,7 +213,25 @@ public class EventService {
         existingEvent.setImageUrl(updatedEvent.getImageUrl());
         existingEvent.setFee(updatedEvent.getFee() != null ? updatedEvent.getFee() : BigDecimal.ZERO);
 
-        return eventRepository.save(existingEvent);
+        Event savedEvent = eventRepository.save(existingEvent);
+
+        // Send email notifications to all confirmed attendees
+        try {
+            List<String> attendeeEmails = rsvpRepository.findConfirmedAttendeesByEventId(eventId)
+                    .stream()
+                    .map(user -> user.getEmail())
+                    .collect(Collectors.toList());
+
+            if (!attendeeEmails.isEmpty()) {
+                emailService.sendEventUpdateNotification(savedEvent, attendeeEmails);
+                System.out.println("Event update notifications sent to " + attendeeEmails.size() + " attendees");
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to send event update notifications: " + e.getMessage());
+            // Don't fail the update if email sending fails
+        }
+
+        return savedEvent;
     }
 
     // Count events by organizer

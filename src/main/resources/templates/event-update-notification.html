@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Updated</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #007bff; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background: #f8f9fa; }
+        .event-details { background: white; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .footer { text-align: center; padding: 20px; color: #666; }
+        .highlight { color: #007bff; font-weight: bold; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Event Updated</h1>
+    </div>
+    <div class="content">
+        <p>Hello!</p>
+        <p>The event <span class="highlight" th:text="${eventTitle}">Event Title</span> that you're registered for has been updated.</p>
+
+        <div class="event-details">
+            <h3 th:text="${eventTitle}">Event Title</h3>
+            <p><strong>Description:</strong> <span th:text="${eventDescription}">Event Description</span></p>
+            <p><strong>Date & Time:</strong> <span th:text="${eventDateTime}">Event DateTime</span></p>
+            <p><strong>Location:</strong> <span th:text="${eventLocation}">Event Location</span></p>
+            <p><strong>Fee:</strong> <span th:text="${eventFee}">Event Fee</span></p>
+            <p><strong>Organizer:</strong> <span th:text="${organizerName}">Organizer Name</span></p>
+        </div>
+
+        <p>Please make note of any changes and plan accordingly.</p>
+        <p>If you have any questions, please contact the event organizer.</p>
+    </div>
+    <div class="footer">
+        <p>Thank you for using Joinify!</p>
+        <p>This is an automated message, please do not reply.</p>
+    </div>
+</div>
+</body>
+</html>

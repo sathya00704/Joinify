@@ -25,9 +25,20 @@ public class UserService {
     private PasswordEncoder passwordEncoder;
 
     // Register a new user
+    public User registerUser(RegisterRequest registerRequest) {
+        // Convert DTO to Entity
+        User user = new User();
+        user.setUsername(registerRequest.getUsername());
+        user.setEmail(registerRequest.getEmail());
+        user.setPassword(registerRequest.getPassword());
+        user.setRole(registerRequest.getRole());
+
+        // Call the existing method
+        return registerUser(user);
+    }
+
     public User registerUser(User user) {
         validateUserRegistration(user);
-
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }

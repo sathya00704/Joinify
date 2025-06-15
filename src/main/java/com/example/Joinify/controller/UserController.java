@@ -2,7 +2,10 @@ package com.example.Joinify.controller;
 
 import com.example.Joinify.entity.User;
 import com.example.Joinify.entity.UserRole;
+import com.example.Joinify.exception.BadRequestException;
+import com.example.Joinify.exception.DuplicateResourceException;
 import com.example.Joinify.exception.ResourceNotFoundException;
+import com.example.Joinify.exception.UnauthorizedException;
 import com.example.Joinify.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,27 +63,32 @@ public class UserController {
             Optional<User> currentUserOpt = userService.getUserByUsername(username);
 
             if (currentUserOpt.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+                throw new UnauthorizedException("User not found");
             }
 
             User currentUser = currentUserOpt.get();
 
-            // Update only allowed fields - DON'T update password here
-            currentUser.setEmail(updatedUser.getEmail());
-            // Remove password update from here - it should be done via separate endpoint
+            // Prepare the updated user data
+            User userToUpdate = new User();
+            userToUpdate.setId(currentUser.getId());
+            userToUpdate.setUsername(currentUser.getUsername());
+            userToUpdate.setEmail(updatedUser.getEmail());
+            userToUpdate.setRole(currentUser.getRole());
 
-            User savedUser = userService.updateUser(currentUser);
+            // Call with correct parameters - let service handle validation via exceptions
+            User savedUser = userService.updateUser(currentUser.getId(), userToUpdate, username);
 
             // Remove password from response
             savedUser.setPassword(null);
             return ResponseEntity.ok(savedUser);
 
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+        } catch (BadRequestException | UnauthorizedException | DuplicateResourceException e) {
+            throw e; // Let GlobalExceptionHandler handle these
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            throw new RuntimeException("Failed to update profile", e);
         }
     }
+
 
 
     // Change password

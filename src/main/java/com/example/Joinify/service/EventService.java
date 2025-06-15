@@ -4,12 +4,16 @@ import com.example.Joinify.entity.Event;
 import com.example.Joinify.entity.User;
 import com.example.Joinify.exception.BadRequestException;
 import com.example.Joinify.exception.ResourceNotFoundException;
+import com.example.Joinify.exception.UnauthorizedException;
 import com.example.Joinify.repository.EventRepository;
 import com.example.Joinify.repository.RSVPRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -26,21 +30,12 @@ public class EventService {
 
     // Create or update event
     public Event saveEvent(Event event) {
-        // Validate event data
-        if (event.getTitle() == null || event.getTitle().trim().isEmpty()) {
-            throw new BadRequestException("Event title is required");
-        }
-        if (event.getDateTime() == null) {
-            throw new BadRequestException("Event date and time is required");
-        }
-        if (event.getMaxCapacity() <= 0) {
-            throw new BadRequestException("Event capacity must be greater than 0");
-        }
-        if (event.getOrganizer() == null) {
-            throw new BadRequestException("Event organizer is required");
-        }
-        if (event.getLocation() == null || event.getLocation().trim().isEmpty()) {
-            throw new BadRequestException("Event location is required");
+        // Validate through exceptions
+        validateEventForCreation(event);
+
+        // Set default values
+        if (event.getFee() == null) {
+            event.setFee(BigDecimal.ZERO);
         }
 
         return eventRepository.save(event);
@@ -189,32 +184,27 @@ public class EventService {
     }
 
     // Update event details
-    public Event updateEvent(Long eventId, Event updatedEvent) {
-        if (eventId == null) {
-            throw new BadRequestException("Event ID cannot be null");
-        }
-        if (updatedEvent == null) {
-            throw new BadRequestException("Updated event data cannot be null");
+    public Event updateEvent(Long eventId, Event updatedEvent, String organizerUsername) {
+        // Check if event exists
+        Event existingEvent = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
+
+        // Check authorization
+        if (!existingEvent.getOrganizer().getUsername().equals(organizerUsername)) {
+            throw new UnauthorizedException("You are not authorized to update this event");
         }
 
-        Event existingEvent = getEventById(eventId);
+        // Validate updated event data
+        validateEventForUpdate(updatedEvent, existingEvent);
 
         // Update fields
-        if (updatedEvent.getTitle() != null) {
-            existingEvent.setTitle(updatedEvent.getTitle());
-        }
-        if (updatedEvent.getDescription() != null) {
-            existingEvent.setDescription(updatedEvent.getDescription());
-        }
-        if (updatedEvent.getDateTime() != null) {
-            existingEvent.setDateTime(updatedEvent.getDateTime());
-        }
-        if (updatedEvent.getLocation() != null) {
-            existingEvent.setLocation(updatedEvent.getLocation());
-        }
-        if (updatedEvent.getMaxCapacity() > 0) {
-            existingEvent.setMaxCapacity(updatedEvent.getMaxCapacity());
-        }
+        existingEvent.setTitle(updatedEvent.getTitle());
+        existingEvent.setDescription(updatedEvent.getDescription());
+        existingEvent.setDateTime(updatedEvent.getDateTime());
+        existingEvent.setLocation(updatedEvent.getLocation());
+        existingEvent.setMaxCapacity(updatedEvent.getMaxCapacity());
+        existingEvent.setImageUrl(updatedEvent.getImageUrl());
+        existingEvent.setFee(updatedEvent.getFee() != null ? updatedEvent.getFee() : BigDecimal.ZERO);
 
         return eventRepository.save(existingEvent);
     }
@@ -242,5 +232,124 @@ public class EventService {
 
     public List<Event> getOrganizerPastEvents(Long organizerId) {
         return eventRepository.findPastEventsByOrganizerWithDetails(organizerId, LocalDateTime.now());
+    }
+
+    // Validation methods that throw exceptions
+    private void validateEventForCreation(Event event) {
+        validateBasicEventData(event);
+        validateEventDateTime(event.getDateTime());
+        validateEventCapacity(event.getMaxCapacity());
+        validateEventFee(event.getFee());
+        validateImageUrl(event.getImageUrl());
+    }
+
+    private void validateEventForUpdate(Event updatedEvent, Event existingEvent) {
+        validateBasicEventData(updatedEvent);
+        validateEventDateTime(updatedEvent.getDateTime());
+        validateEventCapacity(updatedEvent.getMaxCapacity());
+        validateEventFee(updatedEvent.getFee());
+        validateImageUrl(updatedEvent.getImageUrl());
+
+        // Additional validation for updates
+        validateCapacityNotReducedBelowCurrentRSVPs(updatedEvent.getMaxCapacity(), existingEvent.getId());
+    }
+
+    private void validateBasicEventData(Event event) {
+        if (event.getTitle() == null || event.getTitle().trim().isEmpty()) {
+            throw new BadRequestException("Event title is required");
+        }
+        if (event.getTitle().trim().length() < 2) {
+            throw new BadRequestException("Event title must be at least 2 characters long");
+        }
+        if (event.getTitle().length() > 100) {
+            throw new BadRequestException("Event title cannot exceed 100 characters");
+        }
+
+        if (event.getLocation() == null || event.getLocation().trim().isEmpty()) {
+            throw new BadRequestException("Event location is required");
+        }
+        if (event.getLocation().trim().length() < 2) {
+            throw new BadRequestException("Event location must be at least 2 characters long");
+        }
+        if (event.getLocation().length() > 200) {
+            throw new BadRequestException("Event location cannot exceed 200 characters");
+        }
+
+        if (event.getDescription() != null && event.getDescription().length() > 1000) {
+            throw new BadRequestException("Event description cannot exceed 1000 characters");
+        }
+    }
+
+    private void validateEventDateTime(LocalDateTime dateTime) {
+        if (dateTime == null) {
+            throw new BadRequestException("Event date and time is required");
+        }
+        if (dateTime.isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Event date must be in the future");
+        }
+    }
+
+    private void validateEventCapacity(Integer maxCapacity) {
+        if (maxCapacity == null || maxCapacity < 1) {
+            throw new BadRequestException("Event capacity must be at least 1");
+        }
+        if (maxCapacity > 10000) {
+            throw new BadRequestException("Event capacity cannot exceed 10000");
+        }
+    }
+
+    private void validateEventFee(BigDecimal fee) {
+        if (fee != null) {
+            if (fee.compareTo(BigDecimal.ZERO) < 0) {
+                throw new BadRequestException("Event fee cannot be negative");
+            }
+            if (fee.compareTo(new BigDecimal("100000")) > 0) {
+                throw new BadRequestException("Event fee cannot exceed Rs. 100000");
+            }
+            if (fee.scale() > 2) {
+                throw new BadRequestException("Event fee cannot have more than 2 decimal places");
+            }
+        }
+    }
+
+    private void validateImageUrl(String imageUrl) {
+        if (imageUrl != null && !imageUrl.trim().isEmpty()) {
+            try {
+                URL url = new URL(imageUrl);
+                String protocol = url.getProtocol();
+                if (!"http".equals(protocol) && !"https".equals(protocol)) {
+                    throw new BadRequestException("Image URL must use HTTP or HTTPS protocol");
+                }
+
+                String path = imageUrl.toLowerCase();
+                boolean hasImageExtension = path.contains(".jpg") || path.contains(".jpeg") ||
+                        path.contains(".png") || path.contains(".gif") ||
+                        path.contains(".bmp") || path.contains(".webp") ||
+                        path.contains(".svg");
+
+                boolean isImageHost = path.contains("imgur.com") || path.contains("unsplash.com") ||
+                        path.contains("pexels.com") || path.contains("cloudinary.com") ||
+                        path.contains("amazonaws.com") || path.contains("googleusercontent.com");
+
+                if (!hasImageExtension && !isImageHost) {
+                    throw new BadRequestException("Please enter a valid image URL");
+                }
+            } catch (MalformedURLException e) {
+                throw new BadRequestException("Please enter a valid image URL");
+            }
+        }
+    }
+
+    private void validateCapacityNotReducedBelowCurrentRSVPs(Integer newCapacity, Long eventId) {
+        try {
+            // This would require RSVP service integration
+            // long currentRSVPs = rsvpService.getConfirmedRSVPCount(eventId);
+            // if (newCapacity < currentRSVPs) {
+            //     throw new BadRequestException("Cannot reduce capacity below current confirmed RSVPs");
+            // }
+        } catch (Exception e) {
+            // Log error but don't fail the validation
+            System.err.println("Could not validate RSVP capacity: " + e.getMessage());
+        }
     }
 }

@@ -261,16 +261,10 @@ class OrganizerDashboard {
         }
     }
 
+    // Simplified createEvent method without validation
     async createEvent() {
         const form = document.getElementById('create-event-form');
         const formData = new FormData(form);
-
-        const rawImageUrl = formData.get('imageUrl');
-        const rawFee = formData.get('fee');
-
-        // Clean and prepare data
-        const cleanImageUrl = rawImageUrl ? rawImageUrl.trim() : '';
-        const cleanFee = rawFee ? rawFee.trim() : '';
 
         const eventData = {
             title: formData.get('title'),
@@ -278,33 +272,9 @@ class OrganizerDashboard {
             dateTime: formData.get('dateTime'),
             location: formData.get('location'),
             maxCapacity: parseInt(formData.get('maxCapacity')),
-            imageUrl: cleanImageUrl || null,
-            fee: cleanFee ? parseFloat(cleanFee) : 0.00
+            imageUrl: formData.get('imageUrl') || null,
+            fee: formData.get('fee') ? parseFloat(formData.get('fee')) : 0.00
         };
-
-        // Validate required fields
-        if (!eventData.title || !eventData.dateTime || !eventData.location || !eventData.maxCapacity) {
-            showToast('Please fill in all required fields', 'error');
-            return;
-        }
-
-        // Validate image URL ONLY if it's provided (not empty)
-        if (cleanImageUrl && !this.isValidImageUrl(cleanImageUrl)) {
-            showToast('Please enter a valid image URL with proper format (jpg, png, gif, etc.) or from supported hosting services', 'error');
-            return;
-        }
-
-        // Validate fee
-        if (cleanFee && !this.validateFee(cleanFee)) {
-            showToast('Please enter a valid fee amount (0.00 or positive number with max 2 decimal places)', 'error');
-            return;
-        }
-
-        // Validate future date
-        if (new Date(eventData.dateTime) <= new Date()) {
-            showToast('Event date must be in the future', 'error');
-            return;
-        }
 
         try {
             showLoading();
@@ -315,6 +285,7 @@ class OrganizerDashboard {
             this.showSection('events');
         } catch (error) {
             console.error('Error creating event:', error);
+            // The error message from GlobalExceptionHandler will be displayed
             showToast(error.message || 'Failed to create event', 'error');
         } finally {
             hideLoading();

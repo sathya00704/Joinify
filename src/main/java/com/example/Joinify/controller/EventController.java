@@ -2,7 +2,7 @@ package com.example.Joinify.controller;
 
 import com.example.Joinify.entity.Event;
 import com.example.Joinify.entity.User;
-import com.example.Joinify.exception.ResourceNotFoundException;
+import com.example.Joinify.exception.*;
 import com.example.Joinify.service.EventService;
 import com.example.Joinify.service.UserService;
 import com.example.Joinify.repository.EventRepository;
@@ -135,24 +135,27 @@ public class EventController {
     // Create new event (Organizers only)
     @PostMapping
     @PreAuthorize("hasRole('ORGANIZER')")
-    public ResponseEntity<Event> createEvent(@Valid @RequestBody Event event, Authentication authentication) {
+    public ResponseEntity<Event> createEvent(@RequestBody Event event, Authentication authentication) {
         try {
             // Get current user as organizer
             String username = authentication.getName();
             Optional<User> organizer = userService.getUserByUsername(username);
 
             if (organizer.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+                throw new UnauthorizedException("User not found");
             }
 
             event.setOrganizer(organizer.get());
+
+            // Let the service handle validation through exceptions
             Event savedEvent = eventService.saveEvent(event);
             return ResponseEntity.status(HttpStatus.CREATED).body(savedEvent);
 
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+        } catch (BadRequestException | EventCapacityExceededException |
+                 DuplicateResourceException | UnauthorizedException e) {
+            throw e; // Let GlobalExceptionHandler handle these
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            throw new RuntimeException("Failed to create event", e);
         }
     }
 
@@ -160,27 +163,20 @@ public class EventController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ORGANIZER')")
     public ResponseEntity<Event> updateEvent(@PathVariable Long id,
-                                             @Valid @RequestBody Event updatedEvent,
+                                             @RequestBody Event updatedEvent,
                                              Authentication authentication) {
         try {
-            // Check if event exists and get it
-            Event existingEvent = eventService.getEventById(id);
             String username = authentication.getName();
 
-            // Check if current user is the organizer of this event
-            if (!existingEvent.getOrganizer().getUsername().equals(username)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
-
-            Event savedEvent = eventService.updateEvent(id, updatedEvent);
+            // Let service handle validation and authorization through exceptions
+            Event savedEvent = eventService.updateEvent(id, updatedEvent, username);
             return ResponseEntity.ok(savedEvent);
 
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.notFound().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+        } catch (ResourceNotFoundException | BadRequestException |
+                 UnauthorizedException e) {
+            throw e; // Let GlobalExceptionHandler handle these
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            throw new RuntimeException("Failed to update event", e);
         }
     }
 

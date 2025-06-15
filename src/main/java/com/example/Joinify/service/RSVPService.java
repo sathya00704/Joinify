@@ -33,36 +33,19 @@ public class RSVPService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private EventService eventService;
+
+    @Autowired
+    private UserService userService;
+
     // Create RSVP
     public RSVP createRSVP(Long userId, Long eventId) {
-        if (userId == null) {
-            throw new BadRequestException("User ID cannot be null");
-        }
-        if (eventId == null) {
-            throw new BadRequestException("Event ID cannot be null");
-        }
+        // Validate through exceptions
+        validateRSVPCreation(userId, eventId);
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
-
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
-
-        // Check if event is in the past
-        if (event.getDateTime().isBefore(LocalDateTime.now())) {
-            throw new BadRequestException("Cannot RSVP to past events");
-        }
-
-        // Check capacity
-        long confirmedCount = rsvpRepository.countConfirmedRSVPsByEventId(eventId);
-        if (confirmedCount >= event.getMaxCapacity()) {
-            throw new EventCapacityExceededException("Event '" + event.getTitle() + "' is at full capacity");
-        }
-
-        // Check if RSVP already exists
-        if (rsvpRepository.existsByUserIdAndEventId(userId, eventId)) {
-            throw new DuplicateResourceException("User has already RSVP'd to this event");
-        }
+        Event event = eventService.getEventById(eventId);
+        User user = userService.getUserById(userId);
 
         RSVP rsvp = new RSVP();
         rsvp.setUser(user);
@@ -75,18 +58,8 @@ public class RSVPService {
 
     // Update RSVP status
     public RSVP updateRSVPStatus(Long userId, Long eventId, RSVPStatus status) {
-        if (userId == null) {
-            throw new BadRequestException("User ID cannot be null");
-        }
-        if (eventId == null) {
-            throw new BadRequestException("Event ID cannot be null");
-        }
-        if (status == null) {
-            throw new BadRequestException("RSVP status cannot be null");
-        }
-
         RSVP rsvp = rsvpRepository.findByUserIdAndEventId(userId, eventId)
-                .orElseThrow(() -> new ResourceNotFoundException("RSVP not found for user and event"));
+                .orElseThrow(() -> new ResourceNotFoundException("RSVP not found for this event"));
 
         rsvp.setStatus(status);
         return rsvpRepository.save(rsvp);
@@ -94,17 +67,13 @@ public class RSVPService {
 
     // Cancel RSVP (delete it)
     public void cancelRSVP(Long userId, Long eventId) {
-        if (userId == null) {
-            throw new BadRequestException("User ID cannot be null");
-        }
-        if (eventId == null) {
-            throw new BadRequestException("Event ID cannot be null");
+        Optional<RSVP> rsvpOpt = rsvpRepository.findByUserIdAndEventId(userId, eventId);
+
+        if (rsvpOpt.isEmpty()) {
+            throw new ResourceNotFoundException("RSVP not found for this event");
         }
 
-        RSVP rsvp = rsvpRepository.findByUserIdAndEventId(userId, eventId)
-                .orElseThrow(() -> new ResourceNotFoundException("RSVP not found for user and event"));
-
-        rsvpRepository.delete(rsvp);
+        rsvpRepository.delete(rsvpOpt.get());
     }
 
     // Get RSVP by user and event
@@ -155,11 +124,25 @@ public class RSVPService {
         return rsvpRepository.findPendingRSVPsByEventId(eventId);
     }
 
-    // Check if event is at capacity
-    public boolean isEventAtCapacity(Long eventId) {
-        if (eventId == null) {
-            throw new BadRequestException("Event ID cannot be null");
+    private void validateRSVPCreation(Long userId, Long eventId) {
+        // Check for duplicate RSVP
+        if (rsvpRepository.existsByUserIdAndEventId(userId, eventId)) {
+            throw new DuplicateResourceException("You have already registered for this event");
         }
+
+        // Check event capacity
+        if (isEventAtCapacity(eventId)) {
+            throw new EventCapacityExceededException("Event is at full capacity");
+        }
+
+        // Validate event exists and is in future
+        Event event = eventService.getEventById(eventId);
+        if (event.getDateTime().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Cannot RSVP to past events");
+        }
+    }
+
+    public boolean isEventAtCapacity(Long eventId) {
         return rsvpRepository.isEventAtCapacity(eventId);
     }
 

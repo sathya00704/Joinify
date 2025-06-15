@@ -3,8 +3,10 @@ package com.example.Joinify.service;
 import com.example.Joinify.dto.RegisterRequest;
 import com.example.Joinify.entity.User;
 import com.example.Joinify.entity.UserRole;
+import com.example.Joinify.exception.BadRequestException;
 import com.example.Joinify.exception.DuplicateResourceException;
 import com.example.Joinify.exception.ResourceNotFoundException;
+import com.example.Joinify.exception.UnauthorizedException;
 import com.example.Joinify.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,20 +25,10 @@ public class UserService {
     private PasswordEncoder passwordEncoder;
 
     // Register a new user
-    public User registerUser(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new DuplicateResourceException("Username '" + request.getUsername() + "' already exists");
-        }
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateResourceException("Email '" + request.getEmail() + "' already exists");
-        }
+    public User registerUser(User user) {
+        validateUserRegistration(user);
 
-        User user = new User();
-        user.setUsername(request.getUsername());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(request.getRole());
-
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
@@ -77,20 +69,22 @@ public class UserService {
     }
 
     // Update user details
-    public User updateUser(User user) {
-        if (!userRepository.existsById(user.getId())) {
-            throw new ResourceNotFoundException("User", "id", user.getId());
+    public User updateUser(Long userId, User updatedUser, String currentUsername) {
+        User existingUser = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
+        // Authorization check
+        if (!existingUser.getUsername().equals(currentUsername)) {
+            throw new UnauthorizedException("You can only update your own profile");
         }
 
-        // If password is null, preserve existing password
-        if (user.getPassword() == null) {
-            Optional<User> existingUser = userRepository.findById(user.getId());
-            if (existingUser.isPresent()) {
-                user.setPassword(existingUser.get().getPassword());
-            }
-        }
+        validateUserUpdate(updatedUser, existingUser);
 
-        return userRepository.save(user);
+        // Update allowed fields
+        existingUser.setEmail(updatedUser.getEmail());
+        // Don't update username or password through this method
+
+        return userRepository.save(existingUser);
     }
 
     // Update user password
@@ -126,5 +120,67 @@ public class UserService {
     // Get total user count
     public long getTotalUserCount() {
         return userRepository.count();
+    }
+
+    private void validateUserRegistration(User user) {
+        validateUsername(user.getUsername());
+        validateEmail(user.getEmail());
+        validatePassword(user.getPassword());
+
+        // Check for duplicates
+        if (userRepository.existsByUsername(user.getUsername())) {
+            throw new DuplicateResourceException("Username already exists");
+        }
+        if (userRepository.existsByEmail(user.getEmail())) {
+            throw new DuplicateResourceException("Email already registered");
+        }
+    }
+
+    private void validateUserUpdate(User updatedUser, User existingUser) {
+        if (updatedUser.getEmail() != null) {
+            validateEmail(updatedUser.getEmail());
+
+            // Check if email is being changed and if new email already exists
+            if (!existingUser.getEmail().equals(updatedUser.getEmail()) &&
+                    userRepository.existsByEmail(updatedUser.getEmail())) {
+                throw new DuplicateResourceException("Email already registered");
+            }
+        }
+    }
+
+    private void validateUsername(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new BadRequestException("Username is required");
+        }
+        if (username.length() < 3) {
+            throw new BadRequestException("Username must be at least 3 characters long");
+        }
+        if (username.length() > 50) {
+            throw new BadRequestException("Username cannot exceed 50 characters");
+        }
+        if (!username.matches("^[a-zA-Z0-9_]+$")) {
+            throw new BadRequestException("Username can only contain letters, numbers, and underscores");
+        }
+    }
+
+    private void validateEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            throw new BadRequestException("Email is required");
+        }
+        if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+            throw new BadRequestException("Please enter a valid email address");
+        }
+    }
+
+    private void validatePassword(String password) {
+        if (password == null || password.trim().isEmpty()) {
+            throw new BadRequestException("Password is required");
+        }
+        if (password.length() < 6) {
+            throw new BadRequestException("Password must be at least 6 characters long");
+        }
+        if (password.length() > 100) {
+            throw new BadRequestException("Password cannot exceed 100 characters");
+        }
     }
 }

@@ -42,7 +42,6 @@ public class Event {
     @Column(name = "image_url")
     private String imageUrl;
 
-
     @Column(name = "fee", precision = 10, scale = 2)
     @Min(value = 0, message = "Minimum Fee is Rs 0")
     private BigDecimal fee;
@@ -69,6 +68,8 @@ public class Event {
         this.organizer = organizer;
         this.rsvps = rsvps != null ? rsvps : new ArrayList<>();
     }
+
+
 
     // Getters and Setters
     public Long getId() { return id; }

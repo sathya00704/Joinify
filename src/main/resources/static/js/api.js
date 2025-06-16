@@ -9,31 +9,21 @@ class ApiService {
 
     // Get JWT token from localStorage
     getToken() {
-        return localStorage.getItem('jwt_token');
+        return localStorage.getItem('jwt_token'); // Changed from 'token' to 'jwt_token'
     }
 
-    // Set JWT token in localStorage
     setToken(token) {
-        localStorage.setItem('jwt_token', token);
+        localStorage.setItem('jwt_token', token); // Already correct
     }
 
-    // Remove JWT token from localStorage
     removeToken() {
-        localStorage.removeItem('jwt_token');
+        localStorage.removeItem('jwt_token'); // Already correct
     }
 
-    // Get authorization headers
-    getAuthHeaders() {
-        const token = this.getToken();
-        return token ? { 'Authorization': `Bearer ${token}` } : {};
-    }
-
-    // Enhanced Generic API request method with better error handling
-    // Update your api.js request method
+    //Request method
     async request(endpoint, options = {}) {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('jwt_token');
 
-        // Debug logging
         console.log('Making API request to:', `${this.baseURL}${endpoint}`);
         console.log('Token:', token ? `${token.substring(0, 20)}...` : 'No token');
 
@@ -45,14 +35,12 @@ class ApiService {
             ...options
         };
 
-        // Add Authorization header if token exists
         if (token) {
-            // Ensure token is properly formatted
             if (token.includes('.')) {
                 config.headers.Authorization = `Bearer ${token}`;
             } else {
                 console.error('Invalid token format:', token);
-                localStorage.removeItem('token');
+                localStorage.removeItem('jwt_token');
                 window.location.href = 'index.html';
                 return;
             }
@@ -64,7 +52,7 @@ class ApiService {
             console.log('API Response status:', response.status);
 
             if (response.status === 401 || response.status === 403) {
-                localStorage.removeItem('token');
+                localStorage.removeItem('jwt_token');
                 window.location.href = 'index.html';
                 throw new Error('Authentication failed');
             }
@@ -74,14 +62,30 @@ class ApiService {
                 throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
             }
 
-            const data = await response.json();
-            console.log('API Response data:', data);
-            return data;
+            // FIXED: Handle empty responses (204 No Content)
+            if (response.status === 204 || response.headers.get('content-length') === '0') {
+                console.log('Empty response (204 No Content)');
+                return {}; // Return empty object instead of trying to parse JSON
+            }
+
+            // Check if response has content before parsing JSON
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const data = await response.json();
+                console.log('API Response data:', data);
+                return data;
+            } else {
+                // Handle non-JSON responses
+                const text = await response.text();
+                console.log('API Response text:', text);
+                return text ? { message: text } : {};
+            }
         } catch (error) {
             console.error('API request failed:', error);
             throw error;
         }
     }
+
 
 
     // Auth API methods

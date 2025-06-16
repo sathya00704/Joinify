@@ -902,8 +902,40 @@ class OrganizerDashboard {
     initializeCharts() {
         // Initialize Chart.js charts if the library is loaded
         if (typeof Chart !== 'undefined') {
+            this.destroyExistingCharts();
+            this.recreateChartCanvases();
             this.createAttendanceChart();
             this.createStatusChart();
+        }
+    }
+
+    recreateChartCanvases() {
+        // Recreate attendance chart canvas
+        const attendanceContainer = document.getElementById('attendance-chart')?.parentElement;
+        if (attendanceContainer) {
+            const oldCanvas = document.getElementById('attendance-chart');
+            if (oldCanvas) {
+                oldCanvas.remove();
+            }
+            const newCanvas = document.createElement('canvas');
+            newCanvas.id = 'attendance-chart';
+            newCanvas.width = 400;
+            newCanvas.height = 200;
+            attendanceContainer.appendChild(newCanvas);
+        }
+
+        // Recreate status chart canvas
+        const statusContainer = document.getElementById('status-chart')?.parentElement;
+        if (statusContainer) {
+            const oldCanvas = document.getElementById('status-chart');
+            if (oldCanvas) {
+                oldCanvas.remove();
+            }
+            const newCanvas = document.createElement('canvas');
+            newCanvas.id = 'status-chart';
+            newCanvas.width = 400;
+            newCanvas.height = 200;
+            statusContainer.appendChild(newCanvas);
         }
     }
 
@@ -964,6 +996,31 @@ class OrganizerDashboard {
             }
         });
     }
+
+    destroyExistingCharts() {
+            // Destroy attendance chart if it exists
+            if (this.charts.attendance) {
+                this.charts.attendance.destroy();
+                this.charts.attendance = null;
+            }
+
+            // Destroy status chart if it exists
+            if (this.charts.status) {
+                this.charts.status.destroy();
+                this.charts.status = null;
+            }
+
+            // Alternative: Use Chart.js getChart method
+            const attendanceChart = Chart.getChart('attendance-chart');
+            if (attendanceChart) {
+                attendanceChart.destroy();
+            }
+
+            const statusChart = Chart.getChart('status-chart');
+            if (statusChart) {
+                statusChart.destroy();
+            }
+        }
 
     formatDateTime(dateTimeString) {
         const date = new Date(dateTimeString);
@@ -1058,8 +1115,8 @@ class OrganizerDashboard {
             showLoading();
 
             // Get token from localStorage
-            const token = localStorage.getItem('token');
-            console.log('Token being sent:', token); // Debug log
+            const token = localStorage.getItem('jwt_token');
+            console.log('Token being sent:', token);
 
             if (!token) {
                 showToast('Authentication required. Please login again.', 'error');

@@ -356,5 +356,4 @@ public class EventController {
             throw new RuntimeException("Failed to get attendee count", e);
         }
     }
-
 }

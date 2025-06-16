@@ -46,6 +46,9 @@ class OrganizerDashboard {
             this.loadAttendeeEventSelect();
             this.loadReminderEventSelect();
             this.initializeCharts();
+
+            // NEW: Check for capacity alerts
+            await this.checkCapacityAlerts();
         } catch (error) {
             console.error('Error loading dashboard data:', error);
             showToast('Failed to load dashboard data', 'error');
@@ -127,11 +130,77 @@ class OrganizerDashboard {
                     </td>
                 </tr>` : ''
             }
+            <tr id="capacity-alert-${nextEvent.id}" style="display: none;">
+                <td colspan="5" class="capacity-alert-row">
+                    <!-- Capacity alert will be inserted here -->
+                </td>
+            </tr>
         `;
 
-        // Load attendee count for the next event
-        this.loadAttendeeCount(nextEvent);
+        // Load attendee count and capacity alert for the next event
+        this.loadAttendeeCountWithAlert(nextEvent);
     }
+
+    // Enhanced method to load attendee count with capacity alerts
+    async loadAttendeeCountWithAlert(event) {
+        try {
+            const rsvpCount = await api.request(`/rsvp/event/${event.id}/count`);
+            const currentRSVPs = rsvpCount.confirmed || 0;
+            const maxCapacity = event.maxCapacity;
+            const availableSpots = maxCapacity - currentRSVPs;
+
+            const cell = document.getElementById(`attendees-${event.id}`);
+            if (cell) {
+                cell.innerHTML = `${currentRSVPs}/${maxCapacity}`;
+
+                // Color coding
+                if (currentRSVPs >= maxCapacity) {
+                    cell.style.color = '#dc3545';
+                    cell.style.fontWeight = 'bold';
+                } else if (currentRSVPs >= maxCapacity * 0.8) {
+                    cell.style.color = '#ffc107';
+                    cell.style.fontWeight = 'bold';
+                }
+            }
+
+            // Show capacity alert if needed
+            const alertRow = document.getElementById(`capacity-alert-${event.id}`);
+            if (alertRow) {
+                if (currentRSVPs >= maxCapacity) {
+                    alertRow.style.display = 'table-row';
+                    alertRow.innerHTML = `
+                        <td colspan="5" class="capacity-alert-row seats-filled">
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>SEATS FILLED!</strong> Your event "${event.title}" has reached maximum capacity (${maxCapacity} attendees).
+                                <button class="btn btn-sm btn-warning ml-2" onclick="organizerDashboard.closeRegistration(${event.id})">
+                                    Close Registration
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                } else if (currentRSVPs >= maxCapacity * 0.9) {
+                    alertRow.style.display = 'table-row';
+                    alertRow.innerHTML = `
+                        <td colspan="5" class="capacity-alert-row almost-full">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <strong>Almost Full!</strong> Only ${availableSpots} seat${availableSpots !== 1 ? 's' : ''} remaining for "${event.title}".
+                            </div>
+                        </td>
+                    `;
+                }
+            }
+
+        } catch (error) {
+            console.error('Error loading attendee count:', error);
+            const cell = document.getElementById(`attendees-${event.id}`);
+            if (cell) {
+                cell.textContent = `0/${event.maxCapacity}`;
+            }
+        }
+    }
+
 
     // Helper method to load attendee count
     async loadAttendeeCount(event) {
@@ -150,7 +219,6 @@ class OrganizerDashboard {
         }
     }
 
-    // Update your loadMyEvents method in dashboard-organizer.js
     loadMyEvents() {
         const container = document.getElementById('events-grid');
         if (this.myEvents.length === 0) {
@@ -179,6 +247,9 @@ class OrganizerDashboard {
             const registrationStatus = event.registrationStatus || 'OPEN';
             const statusBadge = this.getRegistrationStatusBadge(registrationStatus);
 
+            // NEW: Capacity status indicator
+            const capacityStatus = this.getCapacityStatusBadge(event);
+
             // Registration control buttons (only for upcoming events)
             const registrationControls = eventDate > now ? this.getRegistrationControlButtons(event.id, registrationStatus) : '';
 
@@ -190,9 +261,10 @@ class OrganizerDashboard {
                         <div class="event-card-meta">
                             <span><i class="fas fa-calendar"></i> ${this.formatDateTime(event.dateTime)}</span>
                             <span><i class="fas fa-map-marker-alt"></i> ${event.location}</span>
-                            <span><i class="fas fa-users"></i> ${event.maxCapacity} capacity</span>
+                            <span><i class="fas fa-users"></i> <span id="capacity-${event.id}">Loading...</span>/${event.maxCapacity} capacity</span>
                             ${eventFee}
                             ${statusBadge}
+                            ${capacityStatus}
                         </div>
                         <div class="event-card-description">${event.description || 'No description available'}</div>
                     </div>
@@ -217,7 +289,70 @@ class OrganizerDashboard {
                 </div>
             `;
         }).join('');
+
+        // Load capacity data for each event
+        this.loadCapacityData();
     }
+
+    // NEW: Method to get capacity status badge
+    getCapacityStatusBadge(event) {
+        // This will be populated after loading capacity data
+        return `<span class="capacity-status" id="capacity-status-${event.id}"></span>`;
+    }
+
+    // NEW: Load capacity data for all events
+    async loadCapacityData() {
+        for (const event of this.myEvents) {
+            try {
+                const rsvpCount = await api.getRSVPCount(event.id);
+                const currentRSVPs = rsvpCount.confirmed || 0;
+                const maxCapacity = event.maxCapacity;
+                const availableSpots = maxCapacity - currentRSVPs;
+
+                // Update capacity display
+                const capacityElement = document.getElementById(`capacity-${event.id}`);
+                if (capacityElement) {
+                    capacityElement.textContent = currentRSVPs;
+
+                    // Add color coding based on capacity
+                    if (currentRSVPs >= maxCapacity) {
+                        capacityElement.style.color = '#dc3545'; // Red for full
+                        capacityElement.style.fontWeight = 'bold';
+                    } else if (currentRSVPs >= maxCapacity * 0.8) {
+                        capacityElement.style.color = '#ffc107'; // Yellow for nearly full
+                        capacityElement.style.fontWeight = 'bold';
+                    } else {
+                        capacityElement.style.color = '#28a745'; // Green for available
+                    }
+                }
+
+                // Update capacity status badge
+                const statusElement = document.getElementById(`capacity-status-${event.id}`);
+                if (statusElement) {
+                    if (currentRSVPs >= maxCapacity) {
+                        statusElement.innerHTML = `
+                            <span class="capacity-full">
+                                <i class="fas fa-exclamation-triangle"></i> SEATS FILLED
+                            </span>`;
+                    } else if (currentRSVPs >= maxCapacity * 0.9) {
+                        statusElement.innerHTML = `
+                            <span class="capacity-almost-full">
+                                <i class="fas fa-exclamation-circle"></i> ${availableSpots} SEATS LEFT
+                            </span>`;
+                    } else if (currentRSVPs >= maxCapacity * 0.8) {
+                        statusElement.innerHTML = `
+                            <span class="capacity-filling">
+                                <i class="fas fa-info-circle"></i> ${availableSpots} SEATS AVAILABLE
+                            </span>`;
+                    }
+                }
+
+            } catch (error) {
+                console.error(`Error loading capacity for event ${event.id}:`, error);
+            }
+        }
+    }
+
 
     // Helper method for registration status badge
     getRegistrationStatusBadge(status) {
@@ -1234,6 +1369,63 @@ class OrganizerDashboard {
             hideLoading();
         }
     }
+
+    // Add this method to check for capacity alerts across all events
+    async checkCapacityAlerts() {
+        const alerts = [];
+
+        for (const event of this.myEvents) {
+            try {
+                const rsvpCount = await api.getRSVPCount(event.id);
+                const currentRSVPs = rsvpCount.confirmed || 0;
+                const maxCapacity = event.maxCapacity;
+
+                if (currentRSVPs >= maxCapacity) {
+                    alerts.push({
+                        type: 'danger',
+                        message: `🚨 Event "${event.title}" is at full capacity (${currentRSVPs}/${maxCapacity})`,
+                        eventId: event.id
+                    });
+                } else if (currentRSVPs >= maxCapacity * 0.9) {
+                    alerts.push({
+                        type: 'warning',
+                        message: `⚠️ Event "${event.title}" is almost full (${currentRSVPs}/${maxCapacity})`,
+                        eventId: event.id
+                    });
+                }
+            } catch (error) {
+                console.error(`Error checking capacity for event ${event.id}:`, error);
+            }
+        }
+
+        this.displayCapacityAlerts(alerts);
+    }
+
+    // Display capacity alerts at the top of dashboard
+    displayCapacityAlerts(alerts) {
+        const alertContainer = document.getElementById('dashboard-alerts');
+        if (!alertContainer) return;
+
+        if (alerts.length === 0) {
+            alertContainer.innerHTML = '';
+            return;
+        }
+
+        alertContainer.innerHTML = alerts.map(alert => `
+            <div class="alert alert-${alert.type} alert-dismissible">
+                <span>${alert.message}</span>
+                <div class="alert-actions">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="organizerDashboard.viewEventDetails(${alert.eventId})">
+                        View Event
+                    </button>
+                    <button type="button" class="btn-close" onclick="this.parentElement.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
 }
 
 // Global functions

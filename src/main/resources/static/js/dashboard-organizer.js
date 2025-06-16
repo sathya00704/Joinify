@@ -150,6 +150,7 @@ class OrganizerDashboard {
         }
     }
 
+    // Update your loadMyEvents method in dashboard-organizer.js
     loadMyEvents() {
         const container = document.getElementById('events-grid');
         if (this.myEvents.length === 0) {
@@ -174,6 +175,13 @@ class OrganizerDashboard {
                 `<span class="event-fee">Rs. ${parseFloat(event.fee).toFixed(2)}</span>` :
                 '<span class="event-fee free">Free</span>';
 
+            // Registration status badge
+            const registrationStatus = event.registrationStatus || 'OPEN';
+            const statusBadge = this.getRegistrationStatusBadge(registrationStatus);
+
+            // Registration control buttons (only for upcoming events)
+            const registrationControls = eventDate > now ? this.getRegistrationControlButtons(event.id, registrationStatus) : '';
+
             return `
                 <div class="event-card">
                     ${eventImage}
@@ -184,6 +192,7 @@ class OrganizerDashboard {
                             <span><i class="fas fa-map-marker-alt"></i> ${event.location}</span>
                             <span><i class="fas fa-users"></i> ${event.maxCapacity} capacity</span>
                             ${eventFee}
+                            ${statusBadge}
                         </div>
                         <div class="event-card-description">${event.description || 'No description available'}</div>
                     </div>
@@ -196,6 +205,7 @@ class OrganizerDashboard {
                             <button class="btn btn-sm btn-success" onclick="organizerDashboard.downloadAttendeesCSV(${event.id}, '${event.title.replace(/'/g, "\\'")}')">
                                 <i class="fas fa-download"></i> Export
                             </button>
+                            ${registrationControls}
                             <button class="btn btn-sm btn-primary" onclick="organizerDashboard.editEvent(${event.id})">
                                 Edit
                             </button>
@@ -208,6 +218,76 @@ class OrganizerDashboard {
             `;
         }).join('');
     }
+
+    // Helper method for registration status badge
+    getRegistrationStatusBadge(status) {
+        const statusConfig = {
+            'OPEN': { class: 'registration-open', text: 'RSVPs Open', icon: 'fa-check-circle' },
+            'CLOSED': { class: 'registration-closed', text: 'RSVPs Closed', icon: 'fa-times-circle' },
+            'SUSPENDED': { class: 'registration-suspended', text: 'RSVPs Suspended', icon: 'fa-pause-circle' }
+        };
+
+        const config = statusConfig[status] || statusConfig['OPEN'];
+        return `<span class="registration-status ${config.class}">
+                    <i class="fas ${config.icon}"></i> ${config.text}
+                </span>`;
+    }
+
+    // Helper method for registration control buttons
+    getRegistrationControlButtons(eventId, status) {
+        if (status === 'OPEN') {
+            return `<button class="btn btn-sm btn-warning" onclick="organizerDashboard.closeRegistration(${eventId})">
+                        <i class="fas fa-lock"></i> Close Registration
+                    </button>`;
+        } else {
+            return `<button class="btn btn-sm btn-success" onclick="organizerDashboard.openRegistration(${eventId})">
+                        <i class="fas fa-unlock"></i> Open Registration
+                    </button>`;
+        }
+    }
+
+    // Close registration method
+    async closeRegistration(eventId) {
+        const confirmed = confirm('Are you sure you want to close registration for this event? Attendees will no longer be able to register.');
+        if (!confirmed) return;
+
+        try {
+            showLoading();
+            const response = await api.request(`/events/${eventId}/close-registration`, {
+                method: 'PUT'
+            });
+
+            showToast(response.message, 'success');
+            await this.loadDashboardData();
+        } catch (error) {
+            console.error('Error closing registration:', error);
+            showToast(error.message || 'Failed to close registration', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // Open registration method
+    async openRegistration(eventId) {
+        const confirmed = confirm('Are you sure you want to open registration for this event?');
+        if (!confirmed) return;
+
+        try {
+            showLoading();
+            const response = await api.request(`/events/${eventId}/open-registration`, {
+                method: 'PUT'
+            });
+
+            showToast(response.message, 'success');
+            await this.loadDashboardData();
+        } catch (error) {
+            console.error('Error opening registration:', error);
+            showToast(error.message || 'Failed to open registration', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+
 
     loadAttendeeEventSelect() {
         const select = document.getElementById('attendee-event-select');

@@ -1,9 +1,6 @@
 package com.example.Joinify.service;
 
-import com.example.Joinify.entity.Event;
-import com.example.Joinify.entity.RSVP;
-import com.example.Joinify.entity.RSVPStatus;
-import com.example.Joinify.entity.User;
+import com.example.Joinify.entity.*;
 import com.example.Joinify.exception.BadRequestException;
 import com.example.Joinify.exception.DuplicateResourceException;
 import com.example.Joinify.exception.EventCapacityExceededException;
@@ -130,15 +127,27 @@ public class RSVPService {
             throw new DuplicateResourceException("You have already registered for this event");
         }
 
+        // Get event and check registration status
+        Event event = eventService.getEventById(eventId);
+
+        // Check if registration is closed
+        if (event.getRegistrationStatus() == RegistrationStatus.CLOSED) {
+            throw new BadRequestException("Registration is closed for this event");
+        }
+
+        // Check if registration is suspended
+        if (event.getRegistrationStatus() == RegistrationStatus.SUSPENDED) {
+            throw new BadRequestException("Registration is temporarily suspended for this event");
+        }
+
+        // Check if event is in the past
+        if (event.getDateTime().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Cannot register for past events");
+        }
+
         // Check event capacity
         if (isEventAtCapacity(eventId)) {
             throw new EventCapacityExceededException("Event is at full capacity");
-        }
-
-        // Validate event exists and is in future
-        Event event = eventService.getEventById(eventId);
-        if (event.getDateTime().isBefore(LocalDateTime.now())) {
-            throw new BadRequestException("Cannot RSVP to past events");
         }
     }
 

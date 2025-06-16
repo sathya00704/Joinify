@@ -220,16 +220,32 @@ class AttendeeDashboard {
                 })
             );
 
-            // In your loadDiscoverEvents method
             container.innerHTML = eventsWithCounts.map(event => {
-                const statusClass = event.isAtCapacity ? 'not-available' : 'upcoming';
-                const statusText = event.isAtCapacity ? 'Not Available' : 'Available';
-                const rsvpButton = event.isAtCapacity
-                    ? `<button class="btn btn-sm btn-secondary" disabled>Full</button>`
-                    : `<button class="btn btn-sm btn-primary" onclick="attendeeDashboard.confirmRSVPToEvent(${event.id}, '${event.title.replace(/'/g, "\\'")}')">RSVP</button>`;
+                // Determine status based on registration status and capacity
+                let statusClass, statusText, showStatus = true;
+
+                if (event.registrationStatus === 'CLOSED') {
+                    statusClass = 'registration-closed';
+                    statusText = 'Registration Closed';
+                } else if (event.isAtCapacity) {
+                    statusClass = 'not-available';
+                    statusText = 'Not Available';
+                } else {
+                    // Hide status when registration is open and not at capacity
+                    showStatus = false;
+                }
+
+                const rsvpButton = event.isAtCapacity ?
+                    `<button class="btn btn-sm btn-secondary" disabled>Full</button>` :
+                    event.registrationStatus === 'CLOSED' ?
+                    `<button class="btn btn-sm btn-secondary" disabled>Registration Closed</button>` :
+                    `<button class="btn btn-sm btn-primary" onclick="attendeeDashboard.confirmRSVPToEvent(${event.id}, '${event.title.replace(/'/g, "\\'")}')">RSVP</button>`;
 
                 const eventImage = renderEventImage(event);
                 const eventFee = renderEventFee(event.fee);
+
+                // Only show status if needed
+                const statusDisplay = showStatus ? `<div class="event-status ${statusClass}">${statusText}</div>` : '';
 
                 return `
                     <div class="event-card">
@@ -245,7 +261,7 @@ class AttendeeDashboard {
                             <div class="event-card-description">${event.description || 'No description available'}</div>
                         </div>
                         <div class="event-card-footer">
-                            <div class="event-status ${statusClass}">${statusText}</div>
+                            ${statusDisplay}
                             <div class="event-actions">
                                 <button class="btn btn-sm btn-secondary" onclick="attendeeDashboard.viewEventDetails(${event.id})">
                                     Details
@@ -260,6 +276,7 @@ class AttendeeDashboard {
             console.error('Error loading discover events:', error);
         }
     }
+
 
     loadMyEvents() {
         try {
@@ -555,7 +572,6 @@ class AttendeeDashboard {
             return;
         }
 
-        // Additional filter to ensure only upcoming events (safety check)
         const now = new Date();
         const upcomingEvents = events.filter(event => {
             if (!event || !event.dateTime) return false;
@@ -598,16 +614,32 @@ class AttendeeDashboard {
             })
         );
 
-        // In your loadDiscoverEvents method, update the event card generation:
         container.innerHTML = eventsWithCounts.map(event => {
-            const statusClass = event.isAtCapacity ? 'not-available' : 'upcoming';
-            const statusText = event.isAtCapacity ? 'Not Available' : 'Available';
+            // Determine status based on registration status and capacity
+            let statusClass, statusText, showStatus = true;
+
+            if (event.registrationStatus === 'CLOSED') {
+                statusClass = 'registration-closed';
+                statusText = 'Registration Closed';
+            } else if (event.isAtCapacity) {
+                statusClass = 'not-available';
+                statusText = 'Not Available';
+            } else {
+                // Hide status when registration is open and not at capacity
+                showStatus = false;
+            }
+
             const rsvpButton = event.isAtCapacity
                 ? `<button class="btn btn-sm btn-secondary" disabled>Full</button>`
+                : event.registrationStatus === 'CLOSED'
+                ? `<button class="btn btn-sm btn-secondary" disabled>Registration Closed</button>`
                 : `<button class="btn btn-sm btn-primary" onclick="attendeeDashboard.confirmRSVPToEvent(${event.id}, '${event.title.replace(/'/g, "\\'")}')">RSVP</button>`;
 
             const eventImage = renderEventImage(event);
             const eventFee = renderEventFee(event.fee);
+
+            // Only show status if needed
+            const statusDisplay = showStatus ? `<div class="event-status ${statusClass}">${statusText}</div>` : '';
 
             return `
                 <div class="event-card">
@@ -623,7 +655,7 @@ class AttendeeDashboard {
                         <div class="event-card-description">${event.description || 'No description available'}</div>
                     </div>
                     <div class="event-card-footer">
-                        <div class="event-status ${statusClass}">${statusText}</div>
+                        ${statusDisplay}
                         <div class="event-actions">
                             <button class="btn btn-sm btn-secondary" onclick="attendeeDashboard.viewEventDetails(${event.id})">
                                 Details
@@ -635,6 +667,7 @@ class AttendeeDashboard {
             `;
         }).join('');
     }
+
 
 
     formatDateTime(dateTimeString) {

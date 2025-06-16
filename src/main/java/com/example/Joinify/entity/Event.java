@@ -46,6 +46,10 @@ public class Event {
     @Min(value = 0, message = "Minimum Fee is Rs 0")
     private BigDecimal fee;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "registration_status")
+    private RegistrationStatus registrationStatus = RegistrationStatus.OPEN;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organizer_id", nullable = false)
     private User organizer;
@@ -110,5 +114,13 @@ public class Event {
 
     public void setFee(BigDecimal fee) {
         this.fee = fee;
+    }
+
+    public RegistrationStatus getRegistrationStatus() {
+        return registrationStatus;
+    }
+
+    public void setRegistrationStatus(RegistrationStatus registrationStatus) {
+        this.registrationStatus = registrationStatus;
     }
 }

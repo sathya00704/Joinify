@@ -356,4 +356,70 @@ public class EventController {
             throw new RuntimeException("Failed to get attendee count", e);
         }
     }
+
+    // Close event registration
+    @PutMapping("/{eventId}/close-registration")
+    @PreAuthorize("hasRole('ORGANIZER')")
+    public ResponseEntity<Map<String, String>> closeEventRegistration(@PathVariable Long eventId,
+                                                                      Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            Event event = eventService.closeEventRegistration(eventId, username);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Registration closed successfully for: " + event.getTitle());
+            response.put("status", event.getRegistrationStatus().toString());
+
+            return ResponseEntity.ok(response);
+
+        } catch (BadRequestException | UnauthorizedException | ResourceNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to close registration", e);
+        }
+    }
+
+    // Open event registration
+    @PutMapping("/{eventId}/open-registration")
+    @PreAuthorize("hasRole('ORGANIZER')")
+    public ResponseEntity<Map<String, String>> openEventRegistration(@PathVariable Long eventId,
+                                                                     Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            Event event = eventService.openEventRegistration(eventId, username);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Registration opened successfully for: " + event.getTitle());
+            response.put("status", event.getRegistrationStatus().toString());
+
+            return ResponseEntity.ok(response);
+
+        } catch (BadRequestException | UnauthorizedException | ResourceNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to open registration", e);
+        }
+    }
+
+    // Get registration status
+    @GetMapping("/{eventId}/registration-status")
+    public ResponseEntity<Map<String, Object>> getRegistrationStatus(@PathVariable Long eventId) {
+        try {
+            Event event = eventService.getEventById(eventId);
+            boolean isOpen = eventService.isRegistrationOpen(eventId);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", event.getRegistrationStatus().toString());
+            response.put("isOpen", isOpen);
+            response.put("eventTitle", event.getTitle());
+
+            return ResponseEntity.ok(response);
+
+        } catch (ResourceNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get registration status", e);
+        }
+    }
+
 }

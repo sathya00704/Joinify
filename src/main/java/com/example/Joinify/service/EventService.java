@@ -1,6 +1,7 @@
 package com.example.Joinify.service;
 
 import com.example.Joinify.entity.Event;
+import com.example.Joinify.entity.RegistrationStatus;
 import com.example.Joinify.entity.User;
 import com.example.Joinify.exception.BadRequestException;
 import com.example.Joinify.exception.ResourceNotFoundException;
@@ -434,5 +435,50 @@ public class EventService {
         if (event.getDateTime().isBefore(LocalDateTime.now())) {
             throw new BadRequestException("Cannot send reminders for past events");
         }
+    }
+
+    // Close event registration manually
+    public Event closeEventRegistration(Long eventId, String organizerUsername) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
+
+        // Validate organizer authorization
+        if (!event.getOrganizer().getUsername().equals(organizerUsername)) {
+            throw new UnauthorizedException("You can only manage registration for your own events");
+        }
+
+        if (event.getRegistrationStatus() == RegistrationStatus.CLOSED) {
+            throw new BadRequestException("Registration is already closed for this event");
+        }
+
+        event.setRegistrationStatus(RegistrationStatus.CLOSED);
+        return eventRepository.save(event);
+    }
+
+    // Open event registration manually
+    public Event openEventRegistration(Long eventId, String organizerUsername) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
+
+        // Validate organizer authorization
+        if (!event.getOrganizer().getUsername().equals(organizerUsername)) {
+            throw new UnauthorizedException("You can only manage registration for your own events");
+        }
+
+        if (event.getRegistrationStatus() == RegistrationStatus.OPEN) {
+            throw new BadRequestException("Registration is already open for this event");
+        }
+
+        event.setRegistrationStatus(RegistrationStatus.OPEN);
+        return eventRepository.save(event);
+    }
+
+    // Check if registration is open for an event
+    public boolean isRegistrationOpen(Long eventId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
+
+        return event.getRegistrationStatus() == RegistrationStatus.OPEN &&
+                event.getDateTime().isAfter(LocalDateTime.now());
     }
 }

@@ -486,7 +486,7 @@ class AttendeeDashboard {
                 : '<p><strong>Fee:</strong> Free</p>';
 
             const paymentInfo = event.fee && event.fee > 0
-                ? '<p><strong>Payment:</strong> Payment details will be provided after RSVP confirmation</p>'
+                ? '<p><strong>Payment:</strong> Payment details will be provided directly by organizer</p>'
                 : '';
 
             document.getElementById('modal-event-title').textContent = event.title;

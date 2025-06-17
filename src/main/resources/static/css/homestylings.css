@@ -308,113 +308,6 @@ body {
     z-index: 2;
 }
 
-.events-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 2rem;
-    margin-bottom: 3rem;
-}
-
-.event-card {
-    background: var(--bg-primary);
-    border-radius: 1rem;
-    overflow: hidden;
-    box-shadow: var(--shadow);
-    transition: var(--transition);
-}
-
-.event-card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-lg);
-}
-
-.event-image {
-    height: 200px;
-    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 3rem;
-}
-
-.event-content {
-    padding: 1.5rem;
-}
-
-.event-title {
-    font-size: 1.25rem;
-    font-weight: bold;
-    margin-bottom: 0.5rem;
-    color: var(--text-primary);
-}
-
-.event-meta {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-}
-
-.event-description {
-    color: var(--text-secondary);
-    margin-bottom: 1rem;
-    line-height: 1.5;
-}
-
-.event-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.event-capacity {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-}
-
-/* Skeleton Loading */
-.event-card-skeleton {
-    background: var(--bg-primary);
-    border-radius: 1rem;
-    overflow: hidden;
-    box-shadow: var(--shadow);
-    animation: pulse 1.5s ease-in-out infinite;
-}
-
-.skeleton-image {
-    height: 200px;
-    background: #e5e7eb;
-}
-
-.skeleton-content {
-    padding: 1.5rem;
-}
-
-.skeleton-title {
-    height: 20px;
-    background: #e5e7eb;
-    border-radius: 4px;
-    margin-bottom: 1rem;
-}
-
-.skeleton-text {
-    height: 16px;
-    background: #e5e7eb;
-    border-radius: 4px;
-    margin-bottom: 0.5rem;
-}
-
-.skeleton-text:last-child {
-    width: 60%;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
 /* Footer */
 .footer {
     background: var(--bg-primary);
@@ -489,7 +382,6 @@ body {
     text-align: center;
     color: var(--text-secondary);
 }
-
 
 /* Modals */
 .modal {
@@ -647,11 +539,6 @@ body {
 
 /* Utility Classes */
 .text-center { text-align: center; }
-.text-left { text-align: left; }
-.text-right { text-align: right; }
-
-.hidden { display: none !important; }
-.visible { display: block !important; }
 
 /* Responsive Design */
 @media (max-width: 768px) {
@@ -687,10 +574,6 @@ body {
     }
 
     .features-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .events-grid {
         grid-template-columns: 1fr;
     }
 

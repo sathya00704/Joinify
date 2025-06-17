@@ -15,7 +15,6 @@ class AttendeeDashboard {
             this.setupEventListeners();
             this.showSection('overview');
         } catch (error) {
-            console.error('Dashboard initialization failed:', error);
             showToast('Failed to load dashboard', 'error');
         }
     }
@@ -32,7 +31,6 @@ class AttendeeDashboard {
                 document.getElementById('user-name').textContent = this.currentUser.username;
             }
         } catch (error) {
-            console.error('Authentication check failed:', error);
             showToast('Authentication failed', 'error');
         }
     }
@@ -40,15 +38,12 @@ class AttendeeDashboard {
     async loadDashboardData() {
         showLoading();
         try {
-            console.log('Loading Dashboard Data');
-
+            // Load user RSVPs and available events in parallel
             const [myRSVPs, allEvents] = await Promise.all([
                 api.getMyRSVPs().catch(err => {
-                    console.error('Failed to load RSVPs:', err);
                     return [];
                 }),
                 api.getUpcomingEvents().catch(err => {
-                    console.error('Failed to load events:', err);
                     return [];
                 })
             ]);
@@ -56,9 +51,7 @@ class AttendeeDashboard {
             this.myRSVPs = myRSVPs || [];
             this.allEvents = allEvents || [];
 
-            console.log('Total RSVPs:', this.myRSVPs.length);
-            console.log('Total Available Events:', this.allEvents.length);
-
+            // Update all dashboard sections
             this.updateStats();
             this.loadUpcomingEvents();
             this.loadDiscoverEvents();
@@ -66,7 +59,6 @@ class AttendeeDashboard {
             this.loadEventHistory();
 
         } catch (error) {
-            console.error('Error loading dashboard data:', error);
             showToast('Failed to load dashboard data: ' + error.message, 'error');
         } finally {
             hideLoading();
@@ -77,6 +69,7 @@ class AttendeeDashboard {
         try {
             const now = new Date();
 
+            // Calculate upcoming confirmed RSVPs
             const upcomingRSVPs = this.myRSVPs.filter(rsvp => {
                 if (!rsvp || !rsvp.event || !rsvp.event.dateTime) return false;
                 try {
@@ -86,6 +79,7 @@ class AttendeeDashboard {
                 }
             });
 
+            // Calculate past confirmed RSVPs
             const pastRSVPs = this.myRSVPs.filter(rsvp => {
                 if (!rsvp || !rsvp.event || !rsvp.event.dateTime) return false;
                 try {
@@ -95,6 +89,7 @@ class AttendeeDashboard {
                 }
             });
 
+            // Calculate available events (not already RSVP'd)
             const rsvpEventIds = this.myRSVPs
                 .filter(rsvp => rsvp.event && rsvp.event.id)
                 .map(rsvp => rsvp.event.id);
@@ -103,13 +98,14 @@ class AttendeeDashboard {
                 event && event.id && !rsvpEventIds.includes(event.id)
             );
 
+            // Update stats display
             document.getElementById('upcoming-rsvps').textContent = upcomingRSVPs.length;
             document.getElementById('total-rsvps').textContent = this.myRSVPs.length;
             document.getElementById('events-attended').textContent = pastRSVPs.length;
             document.getElementById('available-events').textContent = availableEvents.length;
 
         } catch (error) {
-            console.error('Error in updateStats:', error);
+            // Handle stats calculation errors silently
         }
     }
 
@@ -117,6 +113,7 @@ class AttendeeDashboard {
         try {
             const now = new Date();
 
+            // Filter and sort upcoming confirmed events
             const upcomingEvents = this.myRSVPs.filter(rsvp => {
                 if (!rsvp || !rsvp.event || !rsvp.event.dateTime) return false;
                 try {
@@ -134,7 +131,7 @@ class AttendeeDashboard {
                 return;
             }
 
-            // Show only the FIRST upcoming event
+            // Show only the next upcoming event with link to view all
             const nextEvent = upcomingEvents[0];
             container.innerHTML = `
                 <div class="event-list-item">
@@ -166,7 +163,7 @@ class AttendeeDashboard {
                 }
             `;
         } catch (error) {
-            console.error('Error loading upcoming events:', error);
+            // Handle upcoming events loading errors silently
         }
     }
 
@@ -185,6 +182,7 @@ class AttendeeDashboard {
                 .filter(rsvp => rsvp.event && rsvp.event.id)
                 .map(rsvp => rsvp.event.id);
 
+            // Filter for future events not already RSVP'd
             const availableEvents = this.allEvents.filter(event => {
                 if (!event || !event.id || !event.dateTime) return false;
                 const isFuture = new Date(event.dateTime) > now;
@@ -201,6 +199,7 @@ class AttendeeDashboard {
                 return;
             }
 
+            // Get RSVP counts for each event
             const eventsWithCounts = await Promise.all(
                 sortedEvents.map(async (event) => {
                     try {
@@ -220,8 +219,9 @@ class AttendeeDashboard {
                 })
             );
 
+            // Render event cards
             container.innerHTML = eventsWithCounts.map(event => {
-                // Determine status based on registration status and capacity
+                // Determine event status and availability
                 let statusClass, statusText, showStatus = true;
 
                 if (event.registrationStatus === 'CLOSED') {
@@ -231,10 +231,10 @@ class AttendeeDashboard {
                     statusClass = 'not-available';
                     statusText = 'Not Available';
                 } else {
-                    // Hide status when registration is open and not at capacity
-                    showStatus = false;
+                    showStatus = false; // Hide status when registration is open and not at capacity
                 }
 
+                // Determine RSVP button state
                 const rsvpButton = event.isAtCapacity ?
                     `<button class="btn btn-sm btn-secondary" disabled>Full</button>` :
                     event.registrationStatus === 'CLOSED' ?
@@ -243,8 +243,6 @@ class AttendeeDashboard {
 
                 const eventImage = renderEventImage(event);
                 const eventFee = renderEventFee(event.fee);
-
-                // Only show status if needed
                 const statusDisplay = showStatus ? `<div class="event-status ${statusClass}">${statusText}</div>` : '';
 
                 return `
@@ -273,15 +271,15 @@ class AttendeeDashboard {
                 `;
             }).join('');
         } catch (error) {
-            console.error('Error loading discover events:', error);
+            // Handle discover events loading errors silently
         }
     }
-
 
     loadMyEvents() {
         try {
             const now = new Date();
 
+            // Filter for upcoming events (all statuses)
             const upcomingEvents = this.myRSVPs.filter(rsvp => {
                 if (!rsvp || !rsvp.event || !rsvp.event.dateTime) return false;
                 try {
@@ -304,6 +302,7 @@ class AttendeeDashboard {
                 return;
             }
 
+            // Render upcoming events with appropriate actions
             container.innerHTML = sortedUpcomingEvents.map(rsvp => `
                 <div class="event-list-item">
                     <div class="event-list-info">
@@ -327,7 +326,6 @@ class AttendeeDashboard {
             `).join('');
 
         } catch (error) {
-            console.error('Error loading my events:', error);
             const container = document.getElementById('my-events-list');
             if (container) {
                 container.innerHTML = '<p class="error-message">Error loading your events</p>';
@@ -339,6 +337,7 @@ class AttendeeDashboard {
         try {
             const now = new Date();
 
+            // Filter for past completed events
             const pastEvents = this.myRSVPs.filter(rsvp => {
                 if (!rsvp || !rsvp.event || !rsvp.event.dateTime) return false;
                 try {
@@ -363,6 +362,7 @@ class AttendeeDashboard {
                 return;
             }
 
+            // Render past events
             container.innerHTML = sortedPastEvents.map(rsvp => `
                 <div class="event-list-item">
                     <div class="event-list-info">
@@ -382,12 +382,13 @@ class AttendeeDashboard {
             `).join('');
 
         } catch (error) {
-            console.error('Error loading event history:', error);
+            // Handle event history loading errors silently
         }
     }
 
     showSection(sectionName) {
         try {
+            // Hide all sections and remove active states
             document.querySelectorAll('.content-section').forEach(section => {
                 section.classList.remove('active');
             });
@@ -395,6 +396,7 @@ class AttendeeDashboard {
                 item.classList.remove('active');
             });
 
+            // Show target section and set active menu item
             const targetSection = document.getElementById(sectionName + '-section');
             if (targetSection) {
                 targetSection.classList.add('active');
@@ -405,7 +407,7 @@ class AttendeeDashboard {
                 menuItem.classList.add('active');
             }
         } catch (error) {
-            console.error('Error showing section:', error);
+            // Handle section switching errors silently
         }
     }
 
@@ -430,7 +432,6 @@ class AttendeeDashboard {
             showToast('RSVP successful!', 'success');
             await this.loadDashboardData();
         } catch (error) {
-            console.error('RSVP failed:', error);
             showToast(error.message || 'RSVP failed', 'error');
         } finally {
             hideLoading();
@@ -444,7 +445,6 @@ class AttendeeDashboard {
             showToast('RSVP cancelled successfully', 'success');
             await this.loadDashboardData();
         } catch (error) {
-            console.error('Cancel RSVP failed:', error);
             showToast(error.message || 'Failed to cancel RSVP', 'error');
         } finally {
             hideLoading();
@@ -458,7 +458,6 @@ class AttendeeDashboard {
             showToast('RSVP confirmed!', 'success');
             await this.loadDashboardData();
         } catch (error) {
-            console.error('Confirm RSVP failed:', error);
             showToast(error.message || 'Failed to confirm RSVP', 'error');
         } finally {
             hideLoading();
@@ -467,9 +466,11 @@ class AttendeeDashboard {
 
     async viewEventDetails(eventId) {
         try {
+            // Load event details and RSVP count
             const event = await api.getEventById(eventId);
             const rsvpCount = await api.getRSVPCount(eventId);
 
+            // Prepare event image display
             const eventImage = event.imageUrl
                 ? `<div class="modal-event-image">
                      <img src="${event.imageUrl}"
@@ -481,6 +482,7 @@ class AttendeeDashboard {
                    </div>`
                 : '';
 
+            // Prepare fee and payment information
             const eventFee = event.fee && event.fee > 0
                 ? `<p><strong>Fee:</strong> Rs. ${parseFloat(event.fee).toFixed(2)}</p>`
                 : '<p><strong>Fee:</strong> Free</p>';
@@ -489,6 +491,7 @@ class AttendeeDashboard {
                 ? '<p><strong>Payment:</strong> Payment details will be provided directly by organizer</p>'
                 : '';
 
+            // Update modal content
             document.getElementById('modal-event-title').textContent = event.title;
             document.getElementById('modal-event-content').innerHTML = `
                 <div class="event-details scrollable-content">
@@ -509,22 +512,7 @@ class AttendeeDashboard {
 
             showModal('event-modal');
         } catch (error) {
-            console.error('Failed to load event details:', error);
             showToast('Failed to load event details', 'error');
-        }
-    }
-
-
-
-
-    setupEventListeners() {
-        const searchInput = document.getElementById('discover-search');
-        if (searchInput) {
-            searchInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    this.searchEvents();
-                }
-            });
         }
     }
 
@@ -539,29 +527,24 @@ class AttendeeDashboard {
             showLoading();
             const searchResults = await api.searchEvents(keyword);
 
-            // Filter out past events from search results
+            // Filter for upcoming events only
             const now = new Date();
             const upcomingSearchResults = searchResults.filter(event => {
                 if (!event || !event.dateTime) return false;
                 try {
                     return new Date(event.dateTime) > now;
                 } catch (error) {
-                    console.error('Error parsing event date:', error);
                     return false;
                 }
             });
 
-            console.log(`Search found ${searchResults.length} total events, ${upcomingSearchResults.length} upcoming events`);
-
             await this.renderFilteredDiscoverEvents(upcomingSearchResults);
         } catch (error) {
-            console.error('Search failed:', error);
             showToast('Search failed', 'error');
         } finally {
             hideLoading();
         }
     }
-
 
     async renderFilteredDiscoverEvents(events) {
         const container = document.getElementById('discover-events-grid');
@@ -582,6 +565,7 @@ class AttendeeDashboard {
             }
         });
 
+        // Filter out events already RSVP'd
         const rsvpEventIds = this.myRSVPs
             .filter(rsvp => rsvp.event && rsvp.event.id)
             .map(rsvp => rsvp.event.id);
@@ -595,6 +579,7 @@ class AttendeeDashboard {
             return;
         }
 
+        // Get RSVP counts for filtered events
         const eventsWithCounts = await Promise.all(
             availableEvents.map(async (event) => {
                 try {
@@ -614,8 +599,9 @@ class AttendeeDashboard {
             })
         );
 
+        // Render filtered events
         container.innerHTML = eventsWithCounts.map(event => {
-            // Determine status based on registration status and capacity
+            // Determine event status
             let statusClass, statusText, showStatus = true;
 
             if (event.registrationStatus === 'CLOSED') {
@@ -625,7 +611,6 @@ class AttendeeDashboard {
                 statusClass = 'not-available';
                 statusText = 'Not Available';
             } else {
-                // Hide status when registration is open and not at capacity
                 showStatus = false;
             }
 
@@ -637,8 +622,6 @@ class AttendeeDashboard {
 
             const eventImage = renderEventImage(event);
             const eventFee = renderEventFee(event.fee);
-
-            // Only show status if needed
             const statusDisplay = showStatus ? `<div class="event-status ${statusClass}">${statusText}</div>` : '';
 
             return `
@@ -668,8 +651,6 @@ class AttendeeDashboard {
         }).join('');
     }
 
-
-
     formatDateTime(dateTimeString) {
         if (!dateTimeString) return 'Date TBD';
 
@@ -679,7 +660,6 @@ class AttendeeDashboard {
 
             return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         } catch (error) {
-            console.error('Error formatting date:', error);
             return 'Date Error';
         }
     }
@@ -687,17 +667,15 @@ class AttendeeDashboard {
     setupEventListeners() {
         const searchInput = document.getElementById('discover-search');
         if (searchInput) {
-            // Remove the keypress event listener for Enter key
-            // Add input event listener for real-time search
+            // Real-time search with debouncing
             searchInput.addEventListener('input', (e) => {
-                // Add a small delay to avoid too many API calls
                 clearTimeout(this.searchTimeout);
                 this.searchTimeout = setTimeout(() => {
                     this.searchEvents();
-                }, 300); // 300ms delay
+                }, 300); // 300ms delay to avoid too many API calls
             });
 
-            // Optional: Keep Enter key functionality as well
+            // Enter key search
             searchInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     clearTimeout(this.searchTimeout);
@@ -708,7 +686,7 @@ class AttendeeDashboard {
     }
 }
 
-// Global functions
+// Global functions for HTML onclick handlers
 function showSection(sectionName) {
     if (window.attendeeDashboard) {
         window.attendeeDashboard.showSection(sectionName);
@@ -734,7 +712,7 @@ function closeModal(modalId) {
     hideModal(modalId);
 }
 
-// Enhanced image display function - corrected overlay positioning
+// Enhanced image display function
 function renderEventImage(event) {
     if (!event.imageUrl) {
         return '';
@@ -754,8 +732,7 @@ function renderEventImage(event) {
     `;
 }
 
-
-// Add image zoom functionality
+// Image zoom functionality
 function zoomImage(imageUrl, title) {
     const modal = document.createElement('div');
     modal.className = 'image-zoom-modal';
@@ -781,9 +758,7 @@ function zoomImage(imageUrl, title) {
 
     document.body.appendChild(modal);
     modal.style.display = 'flex';
-
-    // Prevent body scroll
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden'; // Prevent body scroll
 }
 
 function closeImageZoom() {
@@ -803,7 +778,6 @@ function renderEventFee(fee) {
     const formattedFee = parseFloat(fee).toFixed(2);
     return `<span class="event-fee paid">Rs. ${formattedFee}</span>`;
 }
-
 
 // Initialize dashboard when page loads
 document.addEventListener('DOMContentLoaded', () => {

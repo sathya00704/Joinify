@@ -11,11 +11,9 @@ class AuthManager {
     }
 
     // Get current user role
-    // Get current user role
     getCurrentUserRole() {
         // First try to get from stored user info
         if (this.currentUser && this.currentUser.role) {
-            console.log('Role from stored user:', this.currentUser.role);
             return this.currentUser.role;
         }
 
@@ -26,7 +24,6 @@ class AuthManager {
         try {
             // Decode JWT token to get user info
             const payload = JSON.parse(atob(token.split('.')[1]));
-            console.log('JWT Payload:', payload); // Debug log
 
             // Check different possible role field names from Spring Boot JWT
             const role = payload.role ||
@@ -35,14 +32,11 @@ class AuthManager {
                         payload.sub ||
                         null;
 
-            console.log('Role from JWT:', role);
             return role;
         } catch (error) {
-            console.error('Error decoding token:', error);
             return null;
         }
     }
-
 
     // Login user
     async login(credentials) {
@@ -60,9 +54,6 @@ class AuthManager {
                     role: response.role // Make sure this matches your backend response
                 };
 
-                console.log('Login response:', response); // Debug log
-                console.log('User role:', response.role); // Debug log
-
                 // Update UI
                 this.updateUIForLoggedInUser();
 
@@ -71,11 +62,9 @@ class AuthManager {
                 throw new Error(response.message || 'Login failed');
             }
         } catch (error) {
-            console.error('Login error:', error);
             throw error;
         }
     }
-
 
     // Register user
     async register(userData) {
@@ -88,7 +77,6 @@ class AuthManager {
                 throw new Error(response.message || 'Registration failed');
             }
         } catch (error) {
-            console.error('Registration error:', error);
             throw error;
         }
     }
@@ -106,7 +94,6 @@ class AuthManager {
         const navAuth = document.querySelector('.nav-auth');
         if (navAuth) {
             const role = this.getCurrentUserRole();
-            console.log('Updating UI for role:', role);
 
             let dashboardText = 'Dashboard';
             let dashboardUrl = 'index.html';
@@ -156,16 +143,13 @@ class AuthManager {
                     role: user.role
                 };
 
-                console.log('Auth check - stored user:', this.currentUser);
                 this.updateUIForLoggedInUser();
             } catch (error) {
                 // Token is invalid, remove it
-                console.error('Token validation failed:', error);
                 this.logout();
             }
         }
     }
-
 
     // Validate form inputs
     validateLoginForm(credentials) {
@@ -220,14 +204,8 @@ class AuthManager {
 
     // Add this method for debugging
     debugUserInfo() {
-        console.log('=== AUTH DEBUG INFO ===');
-        console.log('Is logged in:', this.isLoggedIn());
-        console.log('Current user:', this.currentUser);
-        console.log('Token exists:', !!api.getToken());
-        console.log('Detected role:', this.getCurrentUserRole());
-        console.log('=====================');
+        // This method is kept for debugging purposes but won't output to console in production
     }
-
 }
 
 // Create global auth manager instance

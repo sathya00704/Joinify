@@ -15,7 +15,7 @@ class OrganizerDashboard {
             this.setupEventListeners();
             this.showSection('overview');
         } catch (error) {
-            console.error('Dashboard initialization failed:', error);
+            //console.error('Dashboard initialization failed:', error);
             showToast('Failed to load dashboard', 'error');
         }
     }
@@ -50,7 +50,7 @@ class OrganizerDashboard {
             // NEW: Check for capacity alerts
             await this.checkCapacityAlerts();
         } catch (error) {
-            console.error('Error loading dashboard data:', error);
+            //console.error('Error loading dashboard data:', error);
             showToast('Failed to load dashboard data', 'error');
         } finally {
             hideLoading();
@@ -71,7 +71,7 @@ class OrganizerDashboard {
                 totalAttendees += rsvpCount.confirmed || 0;
                 totalCapacity += event.maxCapacity;
             } catch (error) {
-                console.error('Error getting RSVP count for event:', event.id);
+                //console.error('Error getting RSVP count for event:', event.id);
             }
         }
 
@@ -193,7 +193,7 @@ class OrganizerDashboard {
             }
 
         } catch (error) {
-            console.error('Error loading attendee count:', error);
+            //console.error('Error loading attendee count:', error);
             const cell = document.getElementById(`attendees-${event.id}`);
             if (cell) {
                 cell.textContent = `0/${event.maxCapacity}`;
@@ -211,7 +211,7 @@ class OrganizerDashboard {
                 cell.textContent = `${rsvpCount.confirmed || 0}/${event.maxCapacity}`;
             }
         } catch (error) {
-            console.error('Error loading attendee count:', error);
+            //console.error('Error loading attendee count:', error);
             const cell = document.getElementById(`attendees-${event.id}`);
             if (cell) {
                 cell.textContent = `0/${event.maxCapacity}`;
@@ -348,7 +348,7 @@ class OrganizerDashboard {
                 }
 
             } catch (error) {
-                console.error(`Error loading capacity for event ${event.id}:`, error);
+                //console.error(`Error loading capacity for event ${event.id}:`, error);
             }
         }
     }
@@ -395,7 +395,7 @@ class OrganizerDashboard {
             showToast(response.message, 'success');
             await this.loadDashboardData();
         } catch (error) {
-            console.error('Error closing registration:', error);
+            //console.error('Error closing registration:', error);
             showToast(error.message || 'Failed to close registration', 'error');
         } finally {
             hideLoading();
@@ -416,7 +416,7 @@ class OrganizerDashboard {
             showToast(response.message, 'success');
             await this.loadDashboardData();
         } catch (error) {
-            console.error('Error opening registration:', error);
+            //console.error('Error opening registration:', error);
             showToast(error.message || 'Failed to open registration', 'error');
         } finally {
             hideLoading();
@@ -469,7 +469,7 @@ class OrganizerDashboard {
                 </div>
             `;
         } catch (error) {
-            console.error('Error loading attendees:', error);
+            //console.error('Error loading attendees:', error);
             showToast('Failed to load attendees', 'error');
         } finally {
             hideLoading();
@@ -499,7 +499,7 @@ class OrganizerDashboard {
             await this.loadDashboardData();
             this.showSection('events');
         } catch (error) {
-            console.error('Error creating event:', error);
+            //console.error('Error creating event:', error);
             // The error message from GlobalExceptionHandler will be displayed
             showToast(error.message || 'Failed to create event', 'error');
         } finally {
@@ -635,7 +635,7 @@ class OrganizerDashboard {
 
             this.showSection('create-event');
         } catch (error) {
-            console.error('Error loading event for edit:', error);
+            //console.error('Error loading event for edit:', error);
             showToast('Failed to load event details', 'error');
         }
     }
@@ -681,7 +681,7 @@ class OrganizerDashboard {
             await this.loadDashboardData();
             this.showSection('events');
         } catch (error) {
-            console.error('Error updating event:', error);
+            //console.error('Error updating event:', error);
             showToast(error.message || 'Failed to update event', 'error');
         } finally {
             hideLoading();
@@ -700,7 +700,7 @@ class OrganizerDashboard {
             showToast('Event deleted successfully', 'success');
             await this.loadDashboardData();
         } catch (error) {
-            console.error('Error deleting event:', error);
+            //console.error('Error deleting event:', error);
             showToast(error.message || 'Failed to delete event', 'error');
         } finally {
             hideLoading();
@@ -764,7 +764,7 @@ class OrganizerDashboard {
 
             showModal('event-modal');
         } catch (error) {
-            console.error('Failed to load event details:', error);
+            //console.error('Failed to load event details:', error);
             showToast('Failed to load event details', 'error');
         }
     }
@@ -808,7 +808,7 @@ class OrganizerDashboard {
             }
 
         } catch (error) {
-            console.error('Error downloading attendees CSV:', error);
+            //console.error('Error downloading attendees CSV:', error);
             showToast('Failed to download attendees list', 'error');
         } finally {
             hideLoading();
@@ -977,7 +977,7 @@ class OrganizerDashboard {
             showModal('attendees-modal');
 
         } catch (error) {
-            console.error('Error loading attendees table:', error);
+            //console.error('Error loading attendees table:', error);
             showToast('Failed to load attendees list', 'error');
         } finally {
             hideLoading();
@@ -1304,7 +1304,7 @@ class OrganizerDashboard {
                 </div>
             `;
         } catch (error) {
-            console.error('Error loading attendee count:', error);
+            //console.error('Error loading attendee count:', error);
             document.getElementById('attendee-count-display').innerHTML =
                 '<p class="error">Error loading attendee information</p>';
         }
@@ -1331,7 +1331,7 @@ class OrganizerDashboard {
 
             // Get token from localStorage
             const token = localStorage.getItem('jwt_token');
-            console.log('Token being sent:', token);
+            //console.log('Token being sent:', token);
 
             if (!token) {
                 showToast('Authentication required. Please login again.', 'error');
@@ -1363,7 +1363,7 @@ class OrganizerDashboard {
                 showToast(error || 'Failed to send reminder', 'error');
             }
         } catch (error) {
-            console.error('Error sending reminder:', error);
+            //console.error('Error sending reminder:', error);
             showToast('Failed to send reminder', 'error');
         } finally {
             hideLoading();
@@ -1394,7 +1394,7 @@ class OrganizerDashboard {
                     });
                 }
             } catch (error) {
-                console.error(`Error checking capacity for event ${event.id}:`, error);
+                //console.error(`Error checking capacity for event ${event.id}:`, error);
             }
         }
 
@@ -1495,23 +1495,23 @@ window.onclick = function(event) {
 // Add this debug function to your dashboard
 function debugTokenInfo() {
     const token = localStorage.getItem('token');
-    console.log('=== TOKEN DEBUG INFO ===');
-    console.log('Token exists:', !!token);
-    console.log('Token length:', token ? token.length : 0);
-    console.log('Token format valid:', token ? token.split('.').length === 3 : false);
-    console.log('Token preview:', token ? token.substring(0, 50) + '...' : 'No token');
+//    console.log('=== TOKEN DEBUG INFO ===');
+//    console.log('Token exists:', !!token);
+//    console.log('Token length:', token ? token.length : 0);
+//    console.log('Token format valid:', token ? token.split('.').length === 3 : false);
+//    console.log('Token preview:', token ? token.substring(0, 50) + '...' : 'No token');
 
     if (token) {
         try {
             const parts = token.split('.');
-            console.log('Token parts:', parts.length);
+            //console.log('Token parts:', parts.length);
             if (parts.length === 3) {
                 const payload = JSON.parse(atob(parts[1]));
-                console.log('Token payload:', payload);
-                console.log('Token expires:', new Date(payload.exp * 1000));
+                //console.log('Token payload:', payload);
+                //console.log('Token expires:', new Date(payload.exp * 1000));
             }
         } catch (e) {
-            console.error('Error parsing token:', e);
+            //console.error('Error parsing token:', e);
         }
     }
 }

@@ -24,9 +24,6 @@ class ApiService {
     async request(endpoint, options = {}) {
         const token = localStorage.getItem('jwt_token');
 
-        console.log('Making API request to:', `${this.baseURL}${endpoint}`);
-        console.log('Token:', token ? `${token.substring(0, 20)}...` : 'No token');
-
         const config = {
             headers: {
                 'Content-Type': 'application/json',
@@ -39,7 +36,6 @@ class ApiService {
             if (token.includes('.')) {
                 config.headers.Authorization = `Bearer ${token}`;
             } else {
-                console.error('Invalid token format:', token);
                 localStorage.removeItem('jwt_token');
                 window.location.href = 'index.html';
                 return;
@@ -48,8 +44,6 @@ class ApiService {
 
         try {
             const response = await fetch(`${this.baseURL}${endpoint}`, config);
-
-            console.log('API Response status:', response.status);
 
             if (response.status === 401 || response.status === 403) {
                 localStorage.removeItem('jwt_token');
@@ -64,7 +58,6 @@ class ApiService {
 
             // FIXED: Handle empty responses (204 No Content)
             if (response.status === 204 || response.headers.get('content-length') === '0') {
-                console.log('Empty response (204 No Content)');
                 return {}; // Return empty object instead of trying to parse JSON
             }
 
@@ -72,21 +65,16 @@ class ApiService {
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('application/json')) {
                 const data = await response.json();
-                console.log('API Response data:', data);
                 return data;
             } else {
                 // Handle non-JSON responses
                 const text = await response.text();
-                console.log('API Response text:', text);
                 return text ? { message: text } : {};
             }
         } catch (error) {
-            console.error('API request failed:', error);
             throw error;
         }
     }
-
-
 
     // Auth API methods
     async register(userData) {
@@ -308,10 +296,8 @@ class ApiService {
     async testConnection() {
         try {
             const response = await this.request('/users/stats');
-            console.log('✅ Backend connection successful');
             return { success: true, data: response };
         } catch (error) {
-            console.error('❌ Backend connection failed:', error.message);
             return { success: false, error: error.message };
         }
     }
@@ -324,7 +310,6 @@ const api = new ApiService();
 document.addEventListener('DOMContentLoaded', async () => {
     const connectionTest = await api.testConnection();
     if (!connectionTest.success) {
-        console.warn('Backend connection failed. Some features may not work.');
         if (typeof showToast === 'function') {
             showToast('Cannot connect to backend server', 'warning');
         }

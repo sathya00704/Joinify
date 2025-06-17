@@ -18,7 +18,6 @@ async function initializeHomePage() {
         initializeEventListeners();
 
     } catch (error) {
-        console.error('Error initializing home page:', error);
         showToast('Error loading page data', 'error');
     }
 }
@@ -63,7 +62,6 @@ async function loadUpcomingEvents() {
         const events = await api.getUpcomingEvents();
         displayEvents(events.slice(0, 3)); // Show only first 3 events
     } catch (error) {
-        console.error('Error loading events:', error);
         displayEventsError();
     } finally {
         hideLoading();
@@ -135,7 +133,6 @@ async function loadUserStats() {
         const stats = await api.getUserStats();
         updateStatsDisplay(stats);
     } catch (error) {
-        console.error('Error loading stats:', error);
         // Set default values if API fails
         updateStatsDisplay({
             total: 0,
@@ -203,17 +200,13 @@ async function handleLogin(e) {
             authManager.debugUserInfo();
 
             const userRole = authManager.getCurrentUserRole();
-            console.log('Final role check:', userRole);
 
             setTimeout(() => {
                 if (userRole === 'ORGANIZER') {
-                    console.log('Redirecting to organizer dashboard');
                     window.location.href = 'dashboard-organizer.html';
                 } else if (userRole === 'ATTENDEE') {
-                    console.log('Redirecting to attendee dashboard');
                     window.location.href = 'dashboard-attendee.html';
                 } else {
-                    console.log('Role not recognized, staying on home page. Role:', userRole);
                     window.location.href = 'index.html';
                 }
             }, 1000);
@@ -224,8 +217,6 @@ async function handleLogin(e) {
         hideLoading();
     }
 }
-
-
 
 async function handleRegister(e) {
     e.preventDefault();

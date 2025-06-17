@@ -348,7 +348,6 @@ function saveToLocalStorage(key, data) {
         localStorage.setItem(key, JSON.stringify(data));
         return true;
     } catch (error) {
-        console.error('Error saving to localStorage:', error);
         showToast('Failed to save data locally', 'warning');
         return false;
     }
@@ -359,7 +358,6 @@ function getFromLocalStorage(key) {
         const data = localStorage.getItem(key);
         return data ? JSON.parse(data) : null;
     } catch (error) {
-        console.error('Error reading from localStorage:', error);
         return null;
     }
 }
@@ -369,7 +367,6 @@ function removeFromLocalStorage(key) {
         localStorage.removeItem(key);
         return true;
     } catch (error) {
-        console.error('Error removing from localStorage:', error);
         return false;
     }
 }
@@ -379,7 +376,6 @@ function clearLocalStorage() {
         localStorage.clear();
         return true;
     } catch (error) {
-        console.error('Error clearing localStorage:', error);
         return false;
     }
 }
@@ -502,8 +498,6 @@ function isFutureDate(dateString) {
 
 // Enhanced Error handling with better user experience
 function handleApiError(error) {
-    console.error('API Error:', error);
-
     // Extract error message from different error formats
     let message = 'An unexpected error occurred.';
 
@@ -540,7 +534,6 @@ function copyToClipboard(text) {
         navigator.clipboard.writeText(text).then(() => {
             showToast('Copied to clipboard!', 'success', 2000);
         }).catch(err => {
-            console.error('Failed to copy: ', err);
             showToast('Failed to copy to clipboard', 'error');
         });
     } else {

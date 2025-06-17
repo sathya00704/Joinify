@@ -22,8 +22,6 @@ public interface RSVPRepository extends JpaRepository<RSVP, Long> {
     // Find RSVP by user and event
     Optional<RSVP> findByUserIdAndEventId(Long userId, Long eventId);
 
-    // Find RSVP by user and event objects
-    Optional<RSVP> findByUserAndEvent(User user, Event event);
 
     // Find all RSVPs for a specific event
     List<RSVP> findByEventId(Long eventId);
@@ -65,15 +63,8 @@ public interface RSVPRepository extends JpaRepository<RSVP, Long> {
     @Query("SELECT r.user FROM RSVP r WHERE r.event.id = :eventId AND r.status = 'CONFIRMED'")
     List<User> findConfirmedAttendeesByEventId(@Param("eventId") Long eventId);
 
-    // Find RSVPs created within date range
-    @Query("SELECT r FROM RSVP r WHERE r.rsvpDate BETWEEN :startDate AND :endDate")
-    List<RSVP> findRSVPsBetweenDates(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
-
     // Count RSVPs by user
     long countByUserId(Long userId);
-
-    // Delete RSVP by user and event
-    void deleteByUserIdAndEventId(Long userId, Long eventId);
 
     // Check if event is at capacity
     @Query("SELECT CASE WHEN COUNT(r) >= e.maxCapacity THEN true ELSE false END " +
@@ -83,17 +74,8 @@ public interface RSVPRepository extends JpaRepository<RSVP, Long> {
     @Query("SELECT r FROM RSVP r JOIN FETCH r.event JOIN FETCH r.user WHERE r.user.id = :userId ORDER BY r.event.dateTime DESC")
     List<RSVP> findByUserIdWithEventDetails(@Param("userId") Long userId);
 
-    @Query("SELECT r FROM RSVP r JOIN FETCH r.event WHERE r.user.id = :userId AND r.event.dateTime > :currentDateTime ORDER BY r.event.dateTime ASC")
-    List<RSVP> findUserUpcomingRSVPsWithEventDetails(@Param("userId") Long userId, @Param("currentDateTime") LocalDateTime currentDateTime);
-
-    @Query("SELECT r FROM RSVP r JOIN FETCH r.event WHERE r.user.id = :userId AND r.event.dateTime < :currentDateTime ORDER BY r.event.dateTime DESC")
-    List<RSVP> findUserPastRSVPsWithEventDetails(@Param("userId") Long userId, @Param("currentDateTime") LocalDateTime currentDateTime);
-
     @Query("SELECT r FROM RSVP r JOIN FETCH r.user WHERE r.event.id = :eventId AND r.status = 'CONFIRMED'")
     List<RSVP> findConfirmedRSVPsByEventIdWithUser(@Param("eventId") Long eventId);
-
-    @Query("SELECT r FROM RSVP r JOIN FETCH r.user WHERE r.event.id = :eventId AND r.status = 'PENDING'")
-    List<RSVP> findPendingRSVPsByEventIdWithUser(@Param("eventId") Long eventId);
 
     @Query("SELECT r FROM RSVP r JOIN FETCH r.user WHERE r.event.id = :eventId")
     List<RSVP> findByEventIdWithUser(@Param("eventId") Long eventId);

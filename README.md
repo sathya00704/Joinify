@@ -43,42 +43,42 @@ To develop a RESTful Event Management System where:
 ## **Backend REST APIs (Spring Boot)**
 **Authentication Endpoints**
 
-POST /api/auth/register          - User registration
-POST /api/auth/login             - User authentication  
-GET  /api/auth/check-username/{username} - Check username availability
-GET  /api/auth/check-email/{email}       - Check email availability
+* POST /api/auth/register          - User registration
+* POST /api/auth/login             - User authentication  
+* GET  /api/auth/check-username/{username} - Check username availability
+* GET  /api/auth/check-email/{email}       - Check email availability
 
 **Event Management Endpoints**
 
-GET    /api/events               - Get all events
-POST   /api/events               - Create new event
-GET    /api/events/{id}          - Get event by ID
-PUT    /api/events/{id}          - Update event
-DELETE /api/events/{id}          - Delete event
-GET    /api/events/upcoming      - Get upcoming events
-GET    /api/events/past          - Get past events
-GET    /api/events/search        - Search events by title/location
-GET    /api/events/organizer/{id} - Get events by organizer
-POST   /api/events/{id}/reminder - Send event reminder
+* GET    /api/events               - Get all events
+* POST   /api/events               - Create new event
+* GET    /api/events/{id}          - Get event by ID
+* PUT    /api/events/{id}          - Update event
+* DELETE /api/events/{id}          - Delete event
+* GET    /api/events/upcoming      - Get upcoming events
+* GET    /api/events/past          - Get past events
+* GET    /api/events/search        - Search events by title/location
+* GET    /api/events/organizer/{id} - Get events by organizer
+* POST   /api/events/{id}/reminder - Send event reminder
 
 **RSVP Management Endpoints**
 
-POST   /api/rsvp/{eventId}       - Create RSVP
-PUT    /api/rsvp/{eventId}       - Update RSVP status
-DELETE /api/rsvp/{eventId}       - Cancel RSVP
-GET    /api/rsvp/event/{eventId} - Get RSVPs for event
-GET    /api/rsvp/user/{userId}   - Get RSVPs for user
-GET    /api/rsvp/event/{eventId}/count - Get RSVP count
+* POST   /api/rsvp/{eventId}       - Create RSVP
+* PUT    /api/rsvp/{eventId}       - Update RSVP status
+* DELETE /api/rsvp/{eventId}       - Cancel RSVP
+* GET    /api/rsvp/event/{eventId} - Get RSVPs for event
+* GET    /api/rsvp/user/{userId}   - Get RSVPs for user
+* GET    /api/rsvp/event/{eventId}/count - Get RSVP count
 
 **User Management Endpoints**
 
-GET    /api/users               - Get all users
-GET    /api/users/{id}          - Get user by ID
-PUT    /api/users/{id}          - Update user
-DELETE /api/users/{id}          - Delete user
-GET    /api/users/stats         - Get user statistics
-GET    /api/users/organizers    - Get all organizers
-GET    /api/users/attendees     - Get all attendees
+* GET    /api/users               - Get all users
+* GET    /api/users/{id}          - Get user by ID
+* PUT    /api/users/{id}          - Update user
+* DELETE /api/users/{id}          - Delete user
+* GET    /api/users/stats         - Get user statistics
+* GET    /api/users/organizers    - Get all organizers
+* GET    /api/users/attendees     - Get all attendees
 
 ## **Database Model - Tables and Fields**
 

@@ -42,7 +42,6 @@ public class SecurityConfig {
                                 "/index.html",
                                 "/dashboard-attendee.html",
                                 "/dashboard-organizer.html",
-                                "/test.html",
                                 "/css/**",
                                 "/js/**",
                                 "/static/**",

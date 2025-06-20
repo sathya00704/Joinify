@@ -1154,35 +1154,106 @@ class OrganizerDashboard {
         }
     }
 
-    createAttendanceChart() {
+    async createAttendanceChart() {
         const ctx = document.getElementById('attendance-chart');
         if (!ctx) return;
 
-        // Sample data - replace with real data from your API
-        const chartData = {
-            labels: this.myEvents.slice(0, 6).map(event => event.title),
-            datasets: [{
-                label: 'Attendees',
-                data: [12, 19, 3, 5, 2, 3], // Replace with real attendance data
-                borderColor: 'rgb(99, 102, 241)',
-                backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                tension: 0.1
-            }]
-        };
+        try {
+            // IMPORTANT: Destroy existing chart first
+            if (this.charts.attendance) {
+                this.charts.attendance.destroy();
+                this.charts.attendance = null;
+            }
 
-        this.charts.attendance = new Chart(ctx, {
-            type: 'line',
-            data: chartData,
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
+            // Also use Chart.js getChart method as backup
+            const existingChart = Chart.getChart('attendance-chart');
+            if (existingChart) {
+                existingChart.destroy();
+            }
+
+            // Get real attendance data for each event
+            const eventData = [];
+            const attendanceData = [];
+
+            // Limit to last 6 events for better visualization
+            const eventsToShow = this.myEvents.slice(0, 6);
+
+            for (const event of eventsToShow) {
+                try {
+                    const rsvpCount = await api.getRSVPCount(event.id);
+                    eventData.push(event.title.length > 15 ? event.title.substring(0, 15) + '...' : event.title);
+                    attendanceData.push(rsvpCount.confirmed || 0);
+                } catch (error) {
+                    console.error(`Error loading RSVP count for event ${event.id}:`, error);
+                    eventData.push(event.title.length > 15 ? event.title.substring(0, 15) + '...' : event.title);
+                    attendanceData.push(0);
                 }
             }
-        });
+
+            const chartData = {
+                labels: eventData,
+                datasets: [{
+                    label: 'Confirmed Attendees',
+                    data: attendanceData,
+                    borderColor: 'rgb(99, 102, 241)',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    tension: 0.1,
+                    fill: true
+                }]
+            };
+
+            this.charts.attendance = new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // This prevents stretching
+                    layout: {
+                        padding: 0 // Remove extra padding
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error creating attendance chart:', error);
+            // Fallback to empty chart
+            this.charts.attendance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['No Data'],
+                    datasets: [{
+                        label: 'Attendees',
+                        data: [0],
+                        borderColor: 'rgb(99, 102, 241)',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
     }
+
+
 
     createStatusChart() {
         const ctx = document.getElementById('status-chart');

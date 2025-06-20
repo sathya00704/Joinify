@@ -271,10 +271,10 @@ function viewAllEvents() {
         if (userRole === 'ATTENDEE') {
             window.location.href = 'dashboard-attendee.html#discover';
         } else {
-            window.location.href = 'event-list.html';
+            redirectToDashboard();
         }
     } else {
-        window.location.href = 'event-list.html';
+        showLogin();
     }
 }
 

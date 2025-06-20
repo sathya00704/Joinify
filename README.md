@@ -1,5 +1,8 @@
 **Joinify - Event Management System**
 
+**For video demo and screenshots**
+Please access from here: https://drive.google.com/drive/folders/1U3r9rAX_chI6jDnSxrEufttw2a2Bq4Ne?usp=sharing
+
 **Overview:**
 Organizations and individuals often struggle with managing events efficiently—especially when it comes to organizing invitations, tracking RSVPs, sending reminders, and managing attendees. This project aims to build a web-based Event Management System that allows users to create, browse, and RSVP to events with role-based access, using a Java Spring Boot backend and minimal HTML/CSS/JS frontend.
 

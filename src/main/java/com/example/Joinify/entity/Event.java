@@ -1,12 +1,7 @@
 package com.example.Joinify.entity;
 
-import com.example.Joinify.validation.FutureDate;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -20,30 +15,21 @@ public class Event {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Event title is required")
-    @Size(min = 3, max = 100, message = "Title must be between 3 and 100 characters")
     private String title;
 
-    @Size(max = 500, message = "Description cannot exceed 500 characters")
+    @Column(length = 1000)
     private String description;
 
-    @NotNull(message = "Event date and time is required")
-    @FutureDate
     private LocalDateTime dateTime;
 
-    @NotBlank(message = "Location is required")
-    @Size(min = 3, max = 100, message = "Location must be between 3 and 100 characters")
     private String location;
 
-    @Min(value = 1, message = "Maximum capacity must be at least 1")
     private int maxCapacity;
 
-    @NotBlank(message = "URL is required")
     @Column(name = "image_url")
     private String imageUrl;
 
     @Column(name = "fee", precision = 10, scale = 2)
-    @Min(value = 0, message = "Minimum Fee is Rs 0")
     private BigDecimal fee;
 
     @Enumerated(EnumType.STRING)

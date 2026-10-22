@@ -14,6 +14,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -35,8 +36,14 @@ public class GlobalExceptionHandler {
 
         logger.error("Validation error: {}", ex.getMessage());
 
+        // Frontend shows `message` in the toast, so use the first real field error
+        String firstMessage = ex.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(FieldError::getDefaultMessage)
+                .orElse("Validation failed");
+
         ErrorResponse errorResponse = new ErrorResponse(
-                "Validation failed",
+                firstMessage,
                 "Input validation errors occurred",
                 HttpStatus.BAD_REQUEST.value(),
                 "Bad Request",

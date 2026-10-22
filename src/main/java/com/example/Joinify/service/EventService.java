@@ -1,23 +1,24 @@
 package com.example.Joinify.service;
 
+import com.example.Joinify.dto.EventRequest;
+import com.example.Joinify.dto.EventResponse;
 import com.example.Joinify.entity.Event;
 import com.example.Joinify.entity.RegistrationStatus;
 import com.example.Joinify.entity.User;
 import com.example.Joinify.exception.BadRequestException;
 import com.example.Joinify.exception.ResourceNotFoundException;
 import com.example.Joinify.exception.UnauthorizedException;
+import com.example.Joinify.mapper.DtoMapper;
 import com.example.Joinify.repository.EventRepository;
 import com.example.Joinify.repository.RSVPRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,448 +37,240 @@ public class EventService {
     @Autowired
     private UserService userService;
 
-    // Create or update event
-    public Event saveEvent(Event event) {
-        // Validate through exceptions
-        validateEventForCreation(event);
+    // ===================== Create / update / delete =====================
 
-        // Set default values
-        if (event.getFee() == null) {
-            event.setFee(BigDecimal.ZERO);
-        }
+    public EventResponse createEvent(EventRequest request, String organizerUsername) {
+        User organizer = getUserByUsername(organizerUsername);
+        validateImageUrl(request.imageUrl());
 
-        return eventRepository.save(event);
-    }
-
-    // Create new event
-    public Event createEvent(String title, String description, LocalDateTime dateTime,
-                             String location, int maxCapacity, User organizer) {
         Event event = new Event();
-        event.setTitle(title);
-        event.setDescription(description);
-        event.setDateTime(dateTime);
-        event.setLocation(location);
-        event.setMaxCapacity(maxCapacity);
+        DtoMapper.copyToEntity(request, event);
         event.setOrganizer(organizer);
 
-        return saveEvent(event);
+        return DtoMapper.toEventResponse(eventRepository.save(event));
     }
 
-    // Get event by ID
+    public EventResponse updateEvent(Long eventId, EventRequest request, String organizerUsername) {
+        Event event = getOwnedEvent(eventId, organizerUsername, "You are not authorized to update this event");
+        validateImageUrl(request.imageUrl());
+
+        DtoMapper.copyToEntity(request, event);
+        Event savedEvent = eventRepository.save(event);
+
+        notifyAttendeesOfUpdate(savedEvent);
+        return DtoMapper.toEventResponse(savedEvent);
+    }
+
+    public void deleteEvent(Long eventId, String organizerUsername) {
+        Event event = getOwnedEvent(eventId, organizerUsername, "You can only delete your own events");
+        eventRepository.delete(event);
+    }
+
+    // ===================== Read (returns DTOs) =====================
+
+    public EventResponse getEvent(Long id) {
+        return DtoMapper.toEventResponse(getEventById(id));
+    }
+
+    public List<EventResponse> getAllEvents() {
+        return DtoMapper.toEventResponses(eventRepository.findAllEventsWithOrganizer());
+    }
+
+    public List<EventResponse> getUpcomingEvents() {
+        return DtoMapper.toEventResponses(eventRepository.findUpcomingEventsWithOrganizer(LocalDateTime.now()));
+    }
+
+    public List<EventResponse> getPastEvents() {
+        return DtoMapper.toEventResponses(eventRepository.findPastEventsWithOrganizer(LocalDateTime.now()));
+    }
+
+    public List<EventResponse> getEventsWithAvailableCapacity() {
+        return DtoMapper.toEventResponses(
+                eventRepository.findEventsWithAvailableCapacityAndOrganizer(LocalDateTime.now()));
+    }
+
+    public List<EventResponse> searchEventsByTitle(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            throw new BadRequestException("Search keyword cannot be empty");
+        }
+        return DtoMapper.toEventResponses(
+                eventRepository.findByTitleContainingIgnoreCaseWithOrganizer(keyword.trim()));
+    }
+
+    public List<EventResponse> searchEventsByLocation(String location) {
+        if (location == null || location.trim().isEmpty()) {
+            throw new BadRequestException("Location cannot be empty");
+        }
+        return DtoMapper.toEventResponses(
+                eventRepository.findByLocationContainingIgnoreCaseWithOrganizer(location.trim()));
+    }
+
+    public List<EventResponse> getEventsBetweenDates(LocalDateTime startDate, LocalDateTime endDate) {
+        if (startDate.isAfter(endDate)) {
+            throw new BadRequestException("Start date cannot be after end date");
+        }
+        return DtoMapper.toEventResponses(eventRepository.findEventsBetweenDatesWithOrganizer(startDate, endDate));
+    }
+
+    public List<EventResponse> getEventsByOrganizerId(Long organizerId) {
+        return DtoMapper.toEventResponses(eventRepository.findByOrganizerIdWithOrganizer(organizerId));
+    }
+
+    public List<EventResponse> getMyEvents(String organizerUsername) {
+        Long organizerId = getUserByUsername(organizerUsername).getId();
+        return DtoMapper.toEventResponses(eventRepository.findByOrganizerIdWithOrganizer(organizerId));
+    }
+
+    public List<EventResponse> getMyUpcomingEvents(String organizerUsername) {
+        Long organizerId = getUserByUsername(organizerUsername).getId();
+        return DtoMapper.toEventResponses(
+                eventRepository.findUpcomingEventsByOrganizerWithOrganizer(organizerId, LocalDateTime.now()));
+    }
+
+    public List<EventResponse> getMyPastEvents(String organizerUsername) {
+        Long organizerId = getUserByUsername(organizerUsername).getId();
+        return DtoMapper.toEventResponses(
+                eventRepository.findPastEventsByOrganizerWithOrganizer(organizerId, LocalDateTime.now()));
+    }
+
+    // ===================== Internal helpers (return entities) =====================
+
+    // Used inside services (e.g. RSVPService). Controllers should use getEvent() instead.
     public Event getEventById(Long id) {
         return eventRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Event", "id", id));
     }
 
-    // Get event by ID (Optional version for backward compatibility)
-    public Optional<Event> findEventById(Long id) {
-        return eventRepository.findById(id);
-    }
-
-    // Delete event by ID
-    public void deleteEvent(Long id) {
-        if (!eventRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Event", "id", id);
+    private Event getOwnedEvent(Long eventId, String organizerUsername, String notOwnerMessage) {
+        Event event = getEventById(eventId);
+        if (!event.getOrganizer().getUsername().equals(organizerUsername)) {
+            throw new UnauthorizedException(notOwnerMessage);
         }
-        eventRepository.deleteById(id);
+        return event;
     }
 
-    // Get all events
-    public List<Event> getAllEvents() {
-        return eventRepository.findAll();
+    private User getUserByUsername(String username) {
+        return userService.getUserByUsername(username)
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
     }
 
-    // Get upcoming events (events after current date/time)
-    public List<Event> getUpcomingEvents() {
-        return eventRepository.findUpcomingEvents(LocalDateTime.now());
-    }
+    private void notifyAttendeesOfUpdate(Event event) {
+        try {
+            List<String> attendeeEmails = rsvpRepository.findConfirmedAttendeesByEventId(event.getId())
+                    .stream()
+                    .map(User::getEmail)
+                    .collect(Collectors.toList());
 
-    // Get past events (events before current date/time)
-    public List<Event> getPastEvents() {
-        return eventRepository.findPastEvents(LocalDateTime.now());
-    }
-
-    // Get events by organizer
-    public List<Event> getEventsByOrganizer(User organizer) {
-        if (organizer == null) {
-            throw new BadRequestException("Organizer cannot be null");
+            if (!attendeeEmails.isEmpty()) {
+                emailService.sendEventUpdateNotification(event, attendeeEmails);
+            }
+        } catch (Exception e) {
+            // Don't fail the update if email sending fails
+            System.err.println("Failed to send event update notifications: " + e.getMessage());
         }
-        return eventRepository.findByOrganizer(organizer);
     }
 
-    // Get events by organizer ID
-    public List<Event> getEventsByOrganizerId(Long organizerId) {
-        if (organizerId == null) {
-            throw new BadRequestException("Organizer ID cannot be null");
+    // Business rule that annotations can't express: must look like an image link
+    private void validateImageUrl(String imageUrl) {
+        try {
+            URL url = new URL(imageUrl);
+            String protocol = url.getProtocol();
+            if (!"http".equals(protocol) && !"https".equals(protocol)) {
+                throw new BadRequestException("Image URL must use HTTP or HTTPS protocol");
+            }
+
+            String path = imageUrl.toLowerCase();
+            boolean hasImageExtension = path.contains(".jpg") || path.contains(".jpeg") ||
+                    path.contains(".png") || path.contains(".gif") ||
+                    path.contains(".bmp") || path.contains(".webp") ||
+                    path.contains(".svg");
+
+            boolean isImageHost = path.contains("imgur.com") || path.contains("unsplash.com") ||
+                    path.contains("pexels.com") || path.contains("cloudinary.com") ||
+                    path.contains("amazonaws.com") || path.contains("googleusercontent.com");
+
+            if (!hasImageExtension && !isImageHost) {
+                throw new BadRequestException("Please enter a valid image URL");
+            }
+        } catch (MalformedURLException e) {
+            throw new BadRequestException("Please enter a valid image URL");
         }
-        return eventRepository.findByOrganizerId(organizerId);
     }
 
-    // Get upcoming events by organizer
-    public List<Event> getUpcomingEventsByOrganizer(Long organizerId) {
-        if (organizerId == null) {
-            throw new BadRequestException("Organizer ID cannot be null");
-        }
-        return eventRepository.findUpcomingEventsByOrganizer(organizerId, LocalDateTime.now());
-    }
+    // ===================== Capacity (unchanged) =====================
 
-    // Get past events by organizer
-    public List<Event> getPastEventsByOrganizer(Long organizerId) {
-        if (organizerId == null) {
-            throw new BadRequestException("Organizer ID cannot be null");
-        }
-        return eventRepository.findPastEventsByOrganizer(organizerId, LocalDateTime.now());
-    }
-
-    // Search events by title
-    public List<Event> searchEventsByTitle(String keyword) {
-        if (keyword == null || keyword.trim().isEmpty()) {
-            throw new BadRequestException("Search keyword cannot be empty");
-        }
-        return eventRepository.findByTitleContainingIgnoreCase(keyword);
-    }
-
-    // Search events by location
-    public List<Event> searchEventsByLocation(String location) {
-        if (location == null || location.trim().isEmpty()) {
-            throw new BadRequestException("Location cannot be empty");
-        }
-        return eventRepository.findByLocationContainingIgnoreCase(location);
-    }
-
-    // Get events within date range
-    public List<Event> getEventsBetweenDates(LocalDateTime startDate, LocalDateTime endDate) {
-        if (startDate == null || endDate == null) {
-            throw new BadRequestException("Start date and end date are required");
-        }
-        if (startDate.isAfter(endDate)) {
-            throw new BadRequestException("Start date cannot be after end date");
-        }
-        return eventRepository.findEventsBetweenDates(startDate, endDate);
-    }
-
-    // Get events with available capacity
-    public List<Event> getEventsWithAvailableCapacity() {
-        return eventRepository.findEventsWithAvailableCapacity(LocalDateTime.now());
-    }
-
-    // Check if event is at capacity
     public boolean isEventAtCapacity(Long eventId) {
-        if (eventId == null) {
-            throw new BadRequestException("Event ID cannot be null");
-        }
-
         Event event = getEventById(eventId);
         long confirmedCount = rsvpRepository.countConfirmedRSVPsByEventId(eventId);
         return confirmedCount >= event.getMaxCapacity();
     }
 
-    // Get available spots for an event
     public int getAvailableSpots(Long eventId) {
-        if (eventId == null) {
-            throw new BadRequestException("Event ID cannot be null");
-        }
-
         Event event = getEventById(eventId);
         long confirmedCount = rsvpRepository.countConfirmedRSVPsByEventId(eventId);
         return (int) Math.max(0, event.getMaxCapacity() - confirmedCount);
     }
 
-    // Update event details
-    public Event updateEvent(Long eventId, Event updatedEvent, String organizerUsername) {
-        // Check if event exists
-        Event existingEvent = eventRepository.findById(eventId)
-                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
-
-        // Check authorization
-        if (!existingEvent.getOrganizer().getUsername().equals(organizerUsername)) {
-            throw new UnauthorizedException("You are not authorized to update this event");
-        }
-
-        // Validate updated event data
-        validateEventForUpdate(updatedEvent, existingEvent);
-
-        // Update fields
-        existingEvent.setTitle(updatedEvent.getTitle());
-        existingEvent.setDescription(updatedEvent.getDescription());
-        existingEvent.setDateTime(updatedEvent.getDateTime());
-        existingEvent.setLocation(updatedEvent.getLocation());
-        existingEvent.setMaxCapacity(updatedEvent.getMaxCapacity());
-        existingEvent.setImageUrl(updatedEvent.getImageUrl());
-        existingEvent.setFee(updatedEvent.getFee() != null ? updatedEvent.getFee() : BigDecimal.ZERO);
-
-        Event savedEvent = eventRepository.save(existingEvent);
-
-        // Send email notifications to all confirmed attendees
-        try {
-            List<String> attendeeEmails = rsvpRepository.findConfirmedAttendeesByEventId(eventId)
-                    .stream()
-                    .map(user -> user.getEmail())
-                    .collect(Collectors.toList());
-
-            if (!attendeeEmails.isEmpty()) {
-                emailService.sendEventUpdateNotification(savedEvent, attendeeEmails);
-                System.out.println("Event update notifications sent to " + attendeeEmails.size() + " attendees");
-            }
-        } catch (Exception e) {
-            System.err.println("Failed to send event update notifications: " + e.getMessage());
-            // Don't fail the update if email sending fails
-        }
-
-        return savedEvent;
+    public int getConfirmedAttendeeCount(Long eventId) {
+        getEventById(eventId); // throws 404 if the event doesn't exist
+        return (int) rsvpRepository.countConfirmedRSVPsByEventId(eventId);
     }
 
-    // Count events by organizer
-    public long countEventsByOrganizer(Long organizerId) {
-        if (organizerId == null) {
-            throw new BadRequestException("Organizer ID cannot be null");
-        }
-        return eventRepository.countByOrganizerId(organizerId);
-    }
-
-    // Get total event count
-    public long getTotalEventCount() {
-        return eventRepository.count();
-    }
-
-    public List<Event> getEventsByOrganizer(Long organizerId) {
-        return eventRepository.findByOrganizerIdWithOrganizer(organizerId);
-    }
-
-    public List<Event> getOrganizerUpcomingEvents(Long organizerId) {
-        return eventRepository.findUpcomingEventsByOrganizerWithDetails(organizerId, LocalDateTime.now());
-    }
-
-    public List<Event> getOrganizerPastEvents(Long organizerId) {
-        return eventRepository.findPastEventsByOrganizerWithDetails(organizerId, LocalDateTime.now());
-    }
-
-    // Validation methods that throw exceptions
-    private void validateEventForCreation(Event event) {
-        validateBasicEventData(event);
-        validateEventDateTime(event.getDateTime());
-        validateEventCapacity(event.getMaxCapacity());
-        validateEventFee(event.getFee());
-        validateImageUrl(event.getImageUrl());
-    }
-
-    private void validateEventForUpdate(Event updatedEvent, Event existingEvent) {
-        validateBasicEventData(updatedEvent);
-        validateEventDateTime(updatedEvent.getDateTime());
-        validateEventCapacity(updatedEvent.getMaxCapacity());
-        validateEventFee(updatedEvent.getFee());
-        validateImageUrl(updatedEvent.getImageUrl());
-
-        // Additional validation for updates
-        validateCapacityNotReducedBelowCurrentRSVPs(updatedEvent.getMaxCapacity(), existingEvent.getId());
-    }
-
-    private void validateBasicEventData(Event event) {
-        if (event.getTitle() == null || event.getTitle().trim().isEmpty()) {
-            throw new BadRequestException("Event title is required");
-        }
-        if (event.getTitle().trim().length() < 2) {
-            throw new BadRequestException("Event title must be at least 2 characters long");
-        }
-        if (event.getTitle().length() > 100) {
-            throw new BadRequestException("Event title cannot exceed 100 characters");
-        }
-
-        if (event.getLocation() == null || event.getLocation().trim().isEmpty()) {
-            throw new BadRequestException("Event location is required");
-        }
-        if (event.getLocation().trim().length() < 2) {
-            throw new BadRequestException("Event location must be at least 2 characters long");
-        }
-        if (event.getLocation().length() > 200) {
-            throw new BadRequestException("Event location cannot exceed 200 characters");
-        }
-
-        if (event.getDescription() != null && event.getDescription().length() > 1000) {
-            throw new BadRequestException("Event description cannot exceed 1000 characters");
-        }
-    }
-
-    private void validateEventDateTime(LocalDateTime dateTime) {
-        if (dateTime == null) {
-            throw new BadRequestException("Event date and time is required");
-        }
-        if (dateTime.isBefore(LocalDateTime.now())) {
-            throw new BadRequestException("Event date must be in the future");
-        }
-    }
-
-    private void validateEventCapacity(Integer maxCapacity) {
-        if (maxCapacity == null || maxCapacity < 1) {
-            throw new BadRequestException("Event capacity must be at least 1");
-        }
-        if (maxCapacity > 10000) {
-            throw new BadRequestException("Event capacity cannot exceed 10000");
-        }
-    }
-
-    private void validateEventFee(BigDecimal fee) {
-        if (fee != null) {
-            if (fee.compareTo(BigDecimal.ZERO) < 0) {
-                throw new BadRequestException("Event fee cannot be negative");
-            }
-            if (fee.compareTo(new BigDecimal("100000")) > 0) {
-                throw new BadRequestException("Event fee cannot exceed Rs. 100000");
-            }
-            if (fee.scale() > 2) {
-                throw new BadRequestException("Event fee cannot have more than 2 decimal places");
-            }
-        }
-    }
-
-    private void validateImageUrl(String imageUrl) {
-        if (imageUrl != null && !imageUrl.trim().isEmpty()) {
-            try {
-                URL url = new URL(imageUrl);
-                String protocol = url.getProtocol();
-                if (!"http".equals(protocol) && !"https".equals(protocol)) {
-                    throw new BadRequestException("Image URL must use HTTP or HTTPS protocol");
-                }
-
-                String path = imageUrl.toLowerCase();
-                boolean hasImageExtension = path.contains(".jpg") || path.contains(".jpeg") ||
-                        path.contains(".png") || path.contains(".gif") ||
-                        path.contains(".bmp") || path.contains(".webp") ||
-                        path.contains(".svg");
-
-                boolean isImageHost = path.contains("imgur.com") || path.contains("unsplash.com") ||
-                        path.contains("pexels.com") || path.contains("cloudinary.com") ||
-                        path.contains("amazonaws.com") || path.contains("googleusercontent.com");
-
-                if (!hasImageExtension && !isImageHost) {
-                    throw new BadRequestException("Please enter a valid image URL");
-                }
-            } catch (MalformedURLException e) {
-                throw new BadRequestException("Please enter a valid image URL");
-            }
-        }
-    }
-
-    private void validateCapacityNotReducedBelowCurrentRSVPs(Integer newCapacity, Long eventId) {
-        try {
-            // This would require RSVP service integration
-            // long currentRSVPs = rsvpService.getConfirmedRSVPCount(eventId);
-            // if (newCapacity < currentRSVPs) {
-            //     throw new BadRequestException("Cannot reduce capacity below current confirmed RSVPs");
-            // }
-        } catch (Exception e) {
-            // Log error but don't fail the validation
-            System.err.println("Could not validate RSVP capacity: " + e.getMessage());
-        }
-    }
+    // ===================== Reminders (unchanged) =====================
 
     public String sendEventReminder(Long eventId, String customMessage, String organizerUsername) {
-        // Validate event exists
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
+        Event event = getOwnedEvent(eventId, organizerUsername, "You can only send reminders for your own events");
 
-        // Validate organizer authorization
-        if (!event.getOrganizer().getUsername().equals(organizerUsername)) {
-            throw new UnauthorizedException("You can only send reminders for your own events");
-        }
-
-        // Validate event is in the future
         if (event.getDateTime().isBefore(LocalDateTime.now())) {
             throw new BadRequestException("Cannot send reminders for past events");
         }
 
-        // Get confirmed attendees
         List<User> confirmedAttendees = rsvpRepository.findConfirmedAttendeesByEventId(eventId);
-
         if (confirmedAttendees.isEmpty()) {
             throw new BadRequestException("No confirmed attendees to send reminders to");
         }
 
-        // Extract email addresses
-        List<String> attendeeEmails = confirmedAttendees.stream()
-                .map(User::getEmail)
-                .collect(Collectors.toList());
-
-        // Validate custom message length
         if (customMessage != null && customMessage.length() > 500) {
             throw new BadRequestException("Custom message cannot exceed 500 characters");
         }
 
-        try {
-            // Send reminder emails
-            emailService.sendManualEventReminder(event, attendeeEmails, customMessage);
+        List<String> attendeeEmails = confirmedAttendees.stream()
+                .map(User::getEmail)
+                .collect(Collectors.toList());
 
-            return "Reminder sent to " + attendeeEmails.size() + " attendees successfully";
-
-        } catch (Exception e) {
-            System.err.println("Failed to send reminder emails: " + e.getMessage());
-            throw new RuntimeException("Failed to send reminder emails", e);
-        }
+        emailService.sendManualEventReminder(event, attendeeEmails, customMessage);
+        return "Reminder sent to " + attendeeEmails.size() + " attendees successfully";
     }
 
-    // Helper method to get attendee count for an event
-    public int getConfirmedAttendeeCount(Long eventId) {
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
-
-        return rsvpRepository.findConfirmedAttendeesByEventId(eventId).size();
-    }
-
-    // Helper method to validate if user can send reminders for event
     public void validateReminderPermission(Long eventId, String username) {
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
-
-        if (!event.getOrganizer().getUsername().equals(username)) {
-            throw new UnauthorizedException("You can only send reminders for your own events");
-        }
-
+        Event event = getOwnedEvent(eventId, username, "You can only send reminders for your own events");
         if (event.getDateTime().isBefore(LocalDateTime.now())) {
             throw new BadRequestException("Cannot send reminders for past events");
         }
     }
 
-    // Close event registration manually
+    // ===================== Registration open/close (unchanged) =====================
+
     public Event closeEventRegistration(Long eventId, String organizerUsername) {
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
-
-        // Validate organizer authorization
-        if (!event.getOrganizer().getUsername().equals(organizerUsername)) {
-            throw new UnauthorizedException("You can only manage registration for your own events");
-        }
-
+        Event event = getOwnedEvent(eventId, organizerUsername, "You can only manage registration for your own events");
         if (event.getRegistrationStatus() == RegistrationStatus.CLOSED) {
             throw new BadRequestException("Registration is already closed for this event");
         }
-
         event.setRegistrationStatus(RegistrationStatus.CLOSED);
         return eventRepository.save(event);
     }
 
-    // Open event registration manually
     public Event openEventRegistration(Long eventId, String organizerUsername) {
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
-
-        // Validate organizer authorization
-        if (!event.getOrganizer().getUsername().equals(organizerUsername)) {
-            throw new UnauthorizedException("You can only manage registration for your own events");
-        }
-
+        Event event = getOwnedEvent(eventId, organizerUsername, "You can only manage registration for your own events");
         if (event.getRegistrationStatus() == RegistrationStatus.OPEN) {
             throw new BadRequestException("Registration is already open for this event");
         }
-
         event.setRegistrationStatus(RegistrationStatus.OPEN);
         return eventRepository.save(event);
     }
 
-    // Check if registration is open for an event
     public boolean isRegistrationOpen(Long eventId) {
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
-
+        Event event = getEventById(eventId);
         return event.getRegistrationStatus() == RegistrationStatus.OPEN &&
                 event.getDateTime().isAfter(LocalDateTime.now());
     }

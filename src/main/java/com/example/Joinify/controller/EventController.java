@@ -1,25 +1,22 @@
 package com.example.Joinify.controller;
 
+import com.example.Joinify.dto.EventRequest;
+import com.example.Joinify.dto.EventResponse;
 import com.example.Joinify.entity.Event;
-import com.example.Joinify.entity.User;
-import com.example.Joinify.exception.*;
 import com.example.Joinify.service.EventService;
-import com.example.Joinify.service.UserService;
-import com.example.Joinify.repository.EventRepository;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/events")
@@ -28,12 +25,6 @@ public class EventController {
 
     @Autowired
     private EventService eventService;
-
-    @Autowired
-    private UserService userService;
-
-    @Autowired
-    private EventRepository eventRepository;
 
     // Response class for event capacity
     public static class EventCapacityResponse {
@@ -50,376 +41,171 @@ public class EventController {
         }
     }
 
-    // Get all events with organizer data (JOIN FETCH)
+    // ===================== Public listing =====================
+
     @GetMapping
-    @Transactional(readOnly = true)
-    public ResponseEntity<List<Event>> getAllEvents() {
-        List<Event> events = eventRepository.findAllEventsWithOrganizer();
-        return ResponseEntity.ok(events);
+    public ResponseEntity<List<EventResponse>> getAllEvents() {
+        return ResponseEntity.ok(eventService.getAllEvents());
     }
 
-    // Get upcoming events with organizer data (JOIN FETCH)
     @GetMapping("/upcoming")
-    @Transactional(readOnly = true)
-    public ResponseEntity<List<Event>> getUpcomingEvents() {
-        List<Event> events = eventRepository.findUpcomingEventsWithOrganizer(LocalDateTime.now());
-        return ResponseEntity.ok(events);
+    public ResponseEntity<List<EventResponse>> getUpcomingEvents() {
+        return ResponseEntity.ok(eventService.getUpcomingEvents());
     }
 
-    // Get past events with organizer data (JOIN FETCH)
     @GetMapping("/past")
-    @Transactional(readOnly = true)
-    public ResponseEntity<List<Event>> getPastEvents() {
-        List<Event> events = eventRepository.findPastEventsWithOrganizer(LocalDateTime.now());
-        return ResponseEntity.ok(events);
+    public ResponseEntity<List<EventResponse>> getPastEvents() {
+        return ResponseEntity.ok(eventService.getPastEvents());
     }
 
-    // Get events with available capacity and organizer data (JOIN FETCH)
     @GetMapping("/available")
-    @Transactional(readOnly = true)
-    public ResponseEntity<List<Event>> getEventsWithAvailableCapacity() {
-        List<Event> events = eventRepository.findEventsWithAvailableCapacityAndOrganizer(LocalDateTime.now());
-        return ResponseEntity.ok(events);
+    public ResponseEntity<List<EventResponse>> getEventsWithAvailableCapacity() {
+        return ResponseEntity.ok(eventService.getEventsWithAvailableCapacity());
     }
 
-    // Get event by ID with organizer data
     @GetMapping("/{id}")
-    @Transactional(readOnly = true)
-    public ResponseEntity<Event> getEventById(@PathVariable Long id) {
-        try {
-            Event event = eventService.getEventById(id);
-            return ResponseEntity.ok(event);
-        } catch (ResourceNotFoundException e) {
-            throw e;
-        }
+    public ResponseEntity<EventResponse> getEventById(@PathVariable Long id) {
+        return ResponseEntity.ok(eventService.getEvent(id));
     }
 
-    // Search events by title with organizer data (JOIN FETCH)
     @GetMapping("/search/title")
-    @Transactional(readOnly = true)
-    public ResponseEntity<List<Event>> searchEventsByTitle(@RequestParam String keyword) {
-        try {
-            List<Event> events = eventRepository.findByTitleContainingIgnoreCaseWithOrganizer(keyword);
-            return ResponseEntity.ok(events);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<List<EventResponse>> searchEventsByTitle(@RequestParam String keyword) {
+        return ResponseEntity.ok(eventService.searchEventsByTitle(keyword));
     }
 
-    // Search events by location with organizer data (JOIN FETCH)
     @GetMapping("/search/location")
-    @Transactional(readOnly = true)
-    public ResponseEntity<List<Event>> searchEventsByLocation(@RequestParam String location) {
-        try {
-            List<Event> events = eventRepository.findByLocationContainingIgnoreCaseWithOrganizer(location);
-            return ResponseEntity.ok(events);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<List<EventResponse>> searchEventsByLocation(@RequestParam String location) {
+        return ResponseEntity.ok(eventService.searchEventsByLocation(location));
     }
 
-    // Get events between dates with organizer data (JOIN FETCH)
+    // e.g. /api/events/date-range?startDate=2026-11-01T00:00:00&endDate=2026-11-30T23:59:59
     @GetMapping("/date-range")
-    @Transactional(readOnly = true)
-    public ResponseEntity<List<Event>> getEventsBetweenDates(
-            @RequestParam String startDate,
-            @RequestParam String endDate) {
-        try {
-            LocalDateTime start = LocalDateTime.parse(startDate);
-            LocalDateTime end = LocalDateTime.parse(endDate);
-            List<Event> events = eventRepository.findEventsBetweenDatesWithOrganizer(start, end);
-            return ResponseEntity.ok(events);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<List<EventResponse>> getEventsBetweenDates(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
+        return ResponseEntity.ok(eventService.getEventsBetweenDates(startDate, endDate));
     }
 
-    // Create new event (Organizers only)
+    @GetMapping("/organizer/{organizerId}")
+    public ResponseEntity<List<EventResponse>> getEventsByOrganizer(@PathVariable Long organizerId) {
+        return ResponseEntity.ok(eventService.getEventsByOrganizerId(organizerId));
+    }
+
+    // ===================== Organizer: own events =====================
+
     @PostMapping
     @PreAuthorize("hasRole('ORGANIZER')")
-    public ResponseEntity<Event> createEvent(@RequestBody Event event, Authentication authentication) {
-        try {
-            // Get current user as organizer
-            String username = authentication.getName();
-            Optional<User> organizer = userService.getUserByUsername(username);
-
-            if (organizer.isEmpty()) {
-                throw new UnauthorizedException("User not found");
-            }
-
-            event.setOrganizer(organizer.get());
-
-            // Let the service handle validation through exceptions
-            Event savedEvent = eventService.saveEvent(event);
-            return ResponseEntity.status(HttpStatus.CREATED).body(savedEvent);
-
-        } catch (BadRequestException | EventCapacityExceededException |
-                 DuplicateResourceException | UnauthorizedException e) {
-            throw e; // Let GlobalExceptionHandler handle these
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create event", e);
-        }
+    public ResponseEntity<EventResponse> createEvent(@Valid @RequestBody EventRequest request,
+                                                     Authentication authentication) {
+        EventResponse created = eventService.createEvent(request, authentication.getName());
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    // Update event (Organizers only - own events)
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ORGANIZER')")
-    public ResponseEntity<Event> updateEvent(@PathVariable Long id,
-                                             @RequestBody Event updatedEvent,
-                                             Authentication authentication) {
-        try {
-            String username = authentication.getName();
-
-            // Let service handle validation and authorization through exceptions
-            Event savedEvent = eventService.updateEvent(id, updatedEvent, username);
-            return ResponseEntity.ok(savedEvent);
-
-        } catch (ResourceNotFoundException | BadRequestException |
-                 UnauthorizedException e) {
-            throw e; // Let GlobalExceptionHandler handle these
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to update event", e);
-        }
+    public ResponseEntity<EventResponse> updateEvent(@PathVariable Long id,
+                                                     @Valid @RequestBody EventRequest request,
+                                                     Authentication authentication) {
+        return ResponseEntity.ok(eventService.updateEvent(id, request, authentication.getName()));
     }
 
-    // Delete event (Organizers only - own events)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ORGANIZER')")
     public ResponseEntity<Void> deleteEvent(@PathVariable Long id, Authentication authentication) {
-        try {
-            // Check if event exists and get it
-            Event existingEvent = eventService.getEventById(id);
-            String username = authentication.getName();
-
-            // Check if current user is the organizer of this event
-            if (!existingEvent.getOrganizer().getUsername().equals(username)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
-
-            eventService.deleteEvent(id);
-            return ResponseEntity.noContent().build();
-
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.notFound().build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        eventService.deleteEvent(id, authentication.getName());
+        return ResponseEntity.noContent().build();
     }
 
-    // Get events by organizer with organizer data (JOIN FETCH)
-    @GetMapping("/organizer/{organizerId}")
-    @Transactional(readOnly = true)
-    public ResponseEntity<List<Event>> getEventsByOrganizer(@PathVariable Long organizerId) {
-        try {
-            List<Event> events = eventRepository.findByOrganizerIdWithOrganizer(organizerId);
-            return ResponseEntity.ok(events);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    // Get my events (current organizer) with organizer data (JOIN FETCH)
     @GetMapping("/my-events")
     @PreAuthorize("hasRole('ORGANIZER')")
-    @Transactional(readOnly = true)
-    public ResponseEntity<List<Event>> getMyEvents(Authentication authentication) {
-        String username = authentication.getName();
-        Optional<User> organizer = userService.getUserByUsername(username);
-
-        if (organizer.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        try {
-            List<Event> events = eventRepository.findByOrganizerIdWithOrganizer(organizer.get().getId());
-            return ResponseEntity.ok(events);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<List<EventResponse>> getMyEvents(Authentication authentication) {
+        return ResponseEntity.ok(eventService.getMyEvents(authentication.getName()));
     }
 
-    // Get upcoming events by organizer with organizer data (JOIN FETCH)
     @GetMapping("/my-events/upcoming")
     @PreAuthorize("hasRole('ORGANIZER')")
-    @Transactional(readOnly = true)
-    public ResponseEntity<List<Event>> getMyUpcomingEvents(Authentication authentication) {
-        String username = authentication.getName();
-        Optional<User> organizer = userService.getUserByUsername(username);
-
-        if (organizer.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        try {
-            List<Event> events = eventRepository.findUpcomingEventsByOrganizerWithOrganizer(
-                    organizer.get().getId(),
-                    LocalDateTime.now()
-            );
-            return ResponseEntity.ok(events);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<List<EventResponse>> getMyUpcomingEvents(Authentication authentication) {
+        return ResponseEntity.ok(eventService.getMyUpcomingEvents(authentication.getName()));
     }
 
-    // Get past events by organizer with organizer data (JOIN FETCH)
     @GetMapping("/my-events/past")
     @PreAuthorize("hasRole('ORGANIZER')")
-    @Transactional(readOnly = true)
-    public ResponseEntity<List<Event>> getMyPastEvents(Authentication authentication) {
-        String username = authentication.getName();
-        Optional<User> organizer = userService.getUserByUsername(username);
-
-        if (organizer.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        try {
-            List<Event> events = eventRepository.findPastEventsByOrganizerWithOrganizer(
-                    organizer.get().getId(),
-                    LocalDateTime.now()
-            );
-            return ResponseEntity.ok(events);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<List<EventResponse>> getMyPastEvents(Authentication authentication) {
+        return ResponseEntity.ok(eventService.getMyPastEvents(authentication.getName()));
     }
 
-    // Get event capacity info
+    // ===================== Capacity =====================
+
     @GetMapping("/{id}/capacity")
     public ResponseEntity<EventCapacityResponse> getEventCapacityInfo(@PathVariable Long id) {
-        try {
-            Event event = eventService.getEventById(id);
-            long confirmedCount = eventService.getConfirmedAttendeeCount(id);
-            int availableSpots = eventService.getAvailableSpots(id);
-            boolean isAtCapacity = eventService.isEventAtCapacity(id);
-
-            EventCapacityResponse response = new EventCapacityResponse(
-                    event.getMaxCapacity(),
-                    confirmedCount,
-                    availableSpots,
-                    isAtCapacity
-            );
-
-            return ResponseEntity.ok(response);
-
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.notFound().build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        Event event = eventService.getEventById(id);
+        EventCapacityResponse response = new EventCapacityResponse(
+                event.getMaxCapacity(),
+                eventService.getConfirmedAttendeeCount(id),
+                eventService.getAvailableSpots(id),
+                eventService.isEventAtCapacity(id)
+        );
+        return ResponseEntity.ok(response);
     }
 
-    // Send manual reminder to attendees
+    // ===================== Reminders =====================
+
     @PostMapping("/{eventId}/send-reminder")
     @PreAuthorize("hasRole('ORGANIZER')")
     public ResponseEntity<String> sendEventReminder(@PathVariable Long eventId,
                                                     @RequestBody Map<String, String> request,
                                                     Authentication authentication) {
-        try {
-            String username = authentication.getName();
-            String customMessage = request.get("message");
-
-            // Use service method with exception handling
-            String result = eventService.sendEventReminder(eventId, customMessage, username);
-
-            return ResponseEntity.ok(result);
-
-        } catch (BadRequestException | UnauthorizedException | ResourceNotFoundException e) {
-            throw e; // Let GlobalExceptionHandler handle these
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to send reminder", e);
-        }
+        String result = eventService.sendEventReminder(eventId, request.get("message"), authentication.getName());
+        return ResponseEntity.ok(result);
     }
 
-    // Additional endpoint to get attendee count before sending
     @GetMapping("/{eventId}/attendee-count")
     @PreAuthorize("hasRole('ORGANIZER')")
     public ResponseEntity<Map<String, Object>> getAttendeeCount(@PathVariable Long eventId,
                                                                 Authentication authentication) {
-        try {
-            String username = authentication.getName();
+        eventService.validateReminderPermission(eventId, authentication.getName());
+        int confirmedCount = eventService.getConfirmedAttendeeCount(eventId);
 
-            // Validate permission first
-            eventService.validateReminderPermission(eventId, username);
-
-            int confirmedCount = eventService.getConfirmedAttendeeCount(eventId);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("confirmedAttendees", confirmedCount);
-            response.put("canSendReminder", confirmedCount > 0);
-
-            return ResponseEntity.ok(response);
-
-        } catch (BadRequestException | UnauthorizedException | ResourceNotFoundException e) {
-            throw e; // Let GlobalExceptionHandler handle these
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to get attendee count", e);
-        }
+        Map<String, Object> response = new HashMap<>();
+        response.put("confirmedAttendees", confirmedCount);
+        response.put("canSendReminder", confirmedCount > 0);
+        return ResponseEntity.ok(response);
     }
 
-    // Close event registration
+    // ===================== Registration open/close =====================
+
     @PutMapping("/{eventId}/close-registration")
     @PreAuthorize("hasRole('ORGANIZER')")
     public ResponseEntity<Map<String, String>> closeEventRegistration(@PathVariable Long eventId,
                                                                       Authentication authentication) {
-        try {
-            String username = authentication.getName();
-            Event event = eventService.closeEventRegistration(eventId, username);
+        Event event = eventService.closeEventRegistration(eventId, authentication.getName());
 
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "Registration closed successfully for: " + event.getTitle());
-            response.put("status", event.getRegistrationStatus().toString());
-
-            return ResponseEntity.ok(response);
-
-        } catch (BadRequestException | UnauthorizedException | ResourceNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to close registration", e);
-        }
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Registration closed successfully for: " + event.getTitle());
+        response.put("status", event.getRegistrationStatus().toString());
+        return ResponseEntity.ok(response);
     }
 
-    // Open event registration
     @PutMapping("/{eventId}/open-registration")
     @PreAuthorize("hasRole('ORGANIZER')")
     public ResponseEntity<Map<String, String>> openEventRegistration(@PathVariable Long eventId,
                                                                      Authentication authentication) {
-        try {
-            String username = authentication.getName();
-            Event event = eventService.openEventRegistration(eventId, username);
+        Event event = eventService.openEventRegistration(eventId, authentication.getName());
 
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "Registration opened successfully for: " + event.getTitle());
-            response.put("status", event.getRegistrationStatus().toString());
-
-            return ResponseEntity.ok(response);
-
-        } catch (BadRequestException | UnauthorizedException | ResourceNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to open registration", e);
-        }
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Registration opened successfully for: " + event.getTitle());
+        response.put("status", event.getRegistrationStatus().toString());
+        return ResponseEntity.ok(response);
     }
 
-    // Get registration status
     @GetMapping("/{eventId}/registration-status")
     public ResponseEntity<Map<String, Object>> getRegistrationStatus(@PathVariable Long eventId) {
-        try {
-            Event event = eventService.getEventById(eventId);
-            boolean isOpen = eventService.isRegistrationOpen(eventId);
+        Event event = eventService.getEventById(eventId);
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", event.getRegistrationStatus().toString());
-            response.put("isOpen", isOpen);
-            response.put("eventTitle", event.getTitle());
-
-            return ResponseEntity.ok(response);
-
-        } catch (ResourceNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to get registration status", e);
-        }
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", event.getRegistrationStatus().toString());
+        response.put("isOpen", eventService.isRegistrationOpen(eventId));
+        response.put("eventTitle", event.getTitle());
+        return ResponseEntity.ok(response);
     }
-
 }

@@ -50,8 +50,6 @@ public class SecurityConfig {
                                 "/api/events/**",        // Allow all event endpoints publicly for testing
                                 "/api/rsvp/event/*/count",
                                 "/api/users/stats",
-                                "/api/users/organizers",
-                                "/api/users/attendees",
                                 "/favicon.ico"
                         ).permitAll()
                         .anyRequest().authenticated()

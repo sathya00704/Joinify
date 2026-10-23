@@ -98,11 +98,21 @@ public class UserService {
         return userRepository.save(existingUser);
     }
 
-    // Update user password
-    public User updateUserPassword(Long userId, String newPassword) {
-        User user = getUserById(userId);
+    // Change password: must prove the current password first
+    public void changePassword(String username, String currentPassword, String newPassword) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
+
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new BadRequestException("Current password is incorrect");
+        }
+
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new BadRequestException("New password must be different from the current password");
+        }
+
         user.setPassword(passwordEncoder.encode(newPassword));
-        return userRepository.save(user);
+        userRepository.save(user);
     }
 
     // Delete user by ID

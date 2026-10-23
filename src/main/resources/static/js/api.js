@@ -191,13 +191,10 @@ class ApiService {
         });
     }
 
-    async changePassword(newPassword) {
+    async changePassword(currentPassword, newPassword) {
         return this.request('/users/change-password', {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `newPassword=${encodeURIComponent(newPassword)}`
+            body: JSON.stringify({ currentPassword, newPassword })
         });
     }
 

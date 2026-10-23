@@ -17,7 +17,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/rsvp")
-@CrossOrigin(origins = "*")
 public class RSVPController {
 
     @Autowired

@@ -7,6 +7,7 @@ import com.example.Joinify.entity.UserRole;
 import com.example.Joinify.exception.UnauthorizedException;
 import com.example.Joinify.mapper.DtoMapper;
 import com.example.Joinify.service.UserService;
+import com.example.Joinify.dto.ChangePasswordRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "*")
 public class UserController {
 
     @Autowired
@@ -57,12 +57,11 @@ public class UserController {
         return ResponseEntity.ok(DtoMapper.toUserResponse(savedUser));
     }
 
-    // Rewritten in Phase 2 (current password check + strength rule)
     @PutMapping("/change-password")
     @PreAuthorize("hasRole('ATTENDEE') or hasRole('ORGANIZER')")
-    public ResponseEntity<String> changePassword(@RequestParam String newPassword,
+    public ResponseEntity<String> changePassword(@Valid @RequestBody ChangePasswordRequest request,
                                                  Authentication authentication) {
-        userService.updateUserPassword(currentUser(authentication).getId(), newPassword);
+        userService.changePassword(authentication.getName(), request.currentPassword(), request.newPassword());
         return ResponseEntity.ok("Password updated successfully");
     }
 

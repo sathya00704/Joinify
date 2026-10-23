@@ -88,26 +88,30 @@ public class RSVPController {
 
     @GetMapping("/event/{eventId}")
     @PreAuthorize("hasRole('ORGANIZER')")
-    public ResponseEntity<List<AttendeeResponse>> getRSVPsForEvent(@PathVariable Long eventId) {
-        return ResponseEntity.ok(rsvpService.getRSVPsForEvent(eventId));
+    public ResponseEntity<List<AttendeeResponse>> getRSVPsForEvent(@PathVariable Long eventId,
+                                                                   Authentication authentication) {
+        return ResponseEntity.ok(rsvpService.getRSVPsForEvent(eventId, authentication.getName()));
     }
 
     @GetMapping("/event/{eventId}/attendees")
     @PreAuthorize("hasRole('ORGANIZER')")
-    public ResponseEntity<List<AttendeeResponse>> getConfirmedAttendeesForEvent(@PathVariable Long eventId) {
-        return ResponseEntity.ok(rsvpService.getConfirmedAttendeesForEvent(eventId));
+    public ResponseEntity<List<AttendeeResponse>> getConfirmedAttendeesForEvent(@PathVariable Long eventId,
+                                                                                Authentication authentication) {
+        return ResponseEntity.ok(rsvpService.getConfirmedAttendeesForEvent(eventId, authentication.getName()));
     }
 
     @GetMapping("/event/{eventId}/pending")
     @PreAuthorize("hasRole('ORGANIZER')")
-    public ResponseEntity<List<AttendeeResponse>> getPendingRSVPsForEvent(@PathVariable Long eventId) {
-        return ResponseEntity.ok(rsvpService.getPendingRSVPsForEvent(eventId));
+    public ResponseEntity<List<AttendeeResponse>> getPendingRSVPsForEvent(@PathVariable Long eventId,
+                                                                          Authentication authentication) {
+        return ResponseEntity.ok(rsvpService.getPendingRSVPsForEvent(eventId, authentication.getName()));
     }
 
     @PostMapping("/event/{eventId}/confirm-pending")
     @PreAuthorize("hasRole('ORGANIZER')")
-    public ResponseEntity<List<AttendeeResponse>> confirmPendingRSVPs(@PathVariable Long eventId) {
-        return ResponseEntity.ok(rsvpService.confirmPendingRSVPs(eventId));
+    public ResponseEntity<List<AttendeeResponse>> confirmPendingRSVPs(@PathVariable Long eventId,
+                                                                      Authentication authentication) {
+        return ResponseEntity.ok(rsvpService.confirmPendingRSVPs(eventId, authentication.getName()));
     }
 
     // ===================== Public counts =====================

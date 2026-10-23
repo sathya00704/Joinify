@@ -1425,9 +1425,9 @@ class OrganizerDashboard {
                 form.reset();
                 document.getElementById('attendee-count-display').innerHTML =
                     '<p>Select an event to see attendee count</p>';
-            } else if (response.status === 401 || response.status === 403) {
-                showToast('Authentication failed. Please login again.', 'error');
-                localStorage.removeItem('token');
+            } else if (response.status === 401) {
+                showToast('Session expired. Please login again.', 'error');
+                localStorage.removeItem('jwt_token');
                 window.location.href = 'index.html';
             } else {
                 const error = await response.text();

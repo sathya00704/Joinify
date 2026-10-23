@@ -11,6 +11,7 @@ import com.example.Joinify.exception.UnauthorizedException;
 import com.example.Joinify.mapper.DtoMapper;
 import com.example.Joinify.repository.EventRepository;
 import com.example.Joinify.repository.RSVPRepository;
+import com.example.Joinify.exception.ForbiddenException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -141,10 +142,11 @@ public class EventService {
                 .orElseThrow(() -> new ResourceNotFoundException("Event", "id", id));
     }
 
-    private Event getOwnedEvent(Long eventId, String organizerUsername, String notOwnerMessage) {
+    // Also used by RSVPService for organizer-only views
+    public Event getOwnedEvent(Long eventId, String organizerUsername, String notOwnerMessage) {
         Event event = getEventById(eventId);
         if (!event.getOrganizer().getUsername().equals(organizerUsername)) {
-            throw new UnauthorizedException(notOwnerMessage);
+            throw new ForbiddenException(notOwnerMessage);
         }
         return event;
     }

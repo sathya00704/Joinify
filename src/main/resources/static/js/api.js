@@ -45,7 +45,9 @@ class ApiService {
         try {
             const response = await fetch(`${this.baseURL}${endpoint}`, config);
 
-            if (response.status === 401 || response.status === 403) {
+            // 401 = not logged in / token expired -> back to login.
+            // 403 = logged in but not allowed -> falls through and shows the error message.
+            if (response.status === 401) {
                 localStorage.removeItem('jwt_token');
                 window.location.href = 'index.html';
                 throw new Error('Authentication failed');

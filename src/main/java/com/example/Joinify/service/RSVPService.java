@@ -87,21 +87,25 @@ public class RSVPService {
         return DtoMapper.toRsvpResponses(rsvpRepository.findUserPastRSVPs(userId, LocalDateTime.now()));
     }
 
-    // ===================== Organizer views of an event =====================
+    // ===================== Organizer views of an event (owner only) =====================
 
-    public List<AttendeeResponse> getRSVPsForEvent(Long eventId) {
+    public List<AttendeeResponse> getRSVPsForEvent(Long eventId, String organizerUsername) {
+        requireEventOwner(eventId, organizerUsername);
         return DtoMapper.toAttendeeResponses(rsvpRepository.findByEventIdWithUser(eventId));
     }
 
-    public List<AttendeeResponse> getConfirmedAttendeesForEvent(Long eventId) {
+    public List<AttendeeResponse> getConfirmedAttendeesForEvent(Long eventId, String organizerUsername) {
+        requireEventOwner(eventId, organizerUsername);
         return DtoMapper.toAttendeeResponses(rsvpRepository.findConfirmedRSVPsByEventIdWithUser(eventId));
     }
 
-    public List<AttendeeResponse> getPendingRSVPsForEvent(Long eventId) {
+    public List<AttendeeResponse> getPendingRSVPsForEvent(Long eventId, String organizerUsername) {
+        requireEventOwner(eventId, organizerUsername);
         return DtoMapper.toAttendeeResponses(rsvpRepository.findPendingRSVPsByEventId(eventId));
     }
 
-    public List<AttendeeResponse> confirmPendingRSVPs(Long eventId) {
+    public List<AttendeeResponse> confirmPendingRSVPs(Long eventId, String organizerUsername) {
+        requireEventOwner(eventId, organizerUsername);
         List<RSVP> pendingRSVPs = rsvpRepository.findPendingRSVPsByEventId(eventId);
 
         for (RSVP rsvp : pendingRSVPs) {
@@ -113,6 +117,10 @@ public class RSVPService {
         }
 
         return DtoMapper.toAttendeeResponses(rsvpRepository.findConfirmedRSVPsByEventIdWithUser(eventId));
+    }
+
+    private void requireEventOwner(Long eventId, String organizerUsername) {
+        eventService.getOwnedEvent(eventId, organizerUsername, "You can only view attendees of your own events");
     }
 
     // ===================== Counts (unchanged) =====================

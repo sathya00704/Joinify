@@ -37,13 +37,15 @@ public class RSVPService {
     // ===================== Create / update / cancel =====================
 
     public RsvpResponse createRSVP(Long userId, Long eventId) {
-        validateRSVPCreation(userId, eventId);
+        // Lock the event row FIRST. A second RSVP for the same event waits here
+        // until this transaction commits, so two people can't both take the last spot.
+        Event event = eventRepository.findByIdForUpdate(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
 
-        Event event = eventService.getEventById(eventId);
-        User user = userService.getUserById(userId);
+        validateRSVPCreation(userId, event);
 
         RSVP rsvp = new RSVP();
-        rsvp.setUser(user);
+        rsvp.setUser(userService.getUserById(userId));
         rsvp.setEvent(event);
         rsvp.setStatus(RSVPStatus.CONFIRMED);
         rsvp.setRsvpDate(LocalDateTime.now());
@@ -126,7 +128,7 @@ public class RSVPService {
     // ===================== Counts (unchanged) =====================
 
     public boolean isEventAtCapacity(Long eventId) {
-        return rsvpRepository.isEventAtCapacity(eventId);
+        return getAvailableSpots(eventId) == 0;
     }
 
     public long getConfirmedRSVPCount(Long eventId) {
@@ -147,12 +149,10 @@ public class RSVPService {
 
     // ===================== Validation (unchanged) =====================
 
-    private void validateRSVPCreation(Long userId, Long eventId) {
-        if (rsvpRepository.existsByUserIdAndEventId(userId, eventId)) {
+    private void validateRSVPCreation(Long userId, Event event) {
+        if (rsvpRepository.existsByUserIdAndEventId(userId, event.getId())) {
             throw new DuplicateResourceException("You have already registered for this event");
         }
-
-        Event event = eventService.getEventById(eventId);
 
         if (event.getRegistrationStatus() == RegistrationStatus.CLOSED) {
             throw new BadRequestException("Registration is closed for this event");
@@ -166,7 +166,8 @@ public class RSVPService {
             throw new BadRequestException("Cannot register for past events");
         }
 
-        if (isEventAtCapacity(eventId)) {
+        long confirmedCount = rsvpRepository.countConfirmedRSVPsByEventId(event.getId());
+        if (confirmedCount >= event.getMaxCapacity()) {
             throw new EventCapacityExceededException("Event is at full capacity");
         }
     }

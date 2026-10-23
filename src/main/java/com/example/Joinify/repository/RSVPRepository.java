@@ -66,11 +66,6 @@ public interface RSVPRepository extends JpaRepository<RSVP, Long> {
     // Count RSVPs by user
     long countByUserId(Long userId);
 
-    // Check if event is at capacity
-    @Query("SELECT CASE WHEN COUNT(r) >= e.maxCapacity THEN true ELSE false END " +
-            "FROM RSVP r JOIN r.event e WHERE r.event.id = :eventId AND r.status = 'CONFIRMED'")
-    boolean isEventAtCapacity(@Param("eventId") Long eventId);
-
     @Query("SELECT r FROM RSVP r JOIN FETCH r.event JOIN FETCH r.user WHERE r.user.id = :userId ORDER BY r.event.dateTime DESC")
     List<RSVP> findByUserIdWithEventDetails(@Param("userId") Long userId);
 

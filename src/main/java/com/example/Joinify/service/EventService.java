@@ -52,8 +52,18 @@ public class EventService {
     }
 
     public EventResponse updateEvent(Long eventId, EventRequest request, String organizerUsername) {
+        // Lock the row so no RSVP can slip in between the count check below and the save
+        eventRepository.findByIdForUpdate(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
+
         Event event = getOwnedEvent(eventId, organizerUsername, "You are not authorized to update this event");
         validateImageUrl(request.imageUrl());
+
+        long confirmedCount = rsvpRepository.countConfirmedRSVPsByEventId(eventId);
+        if (request.maxCapacity() < confirmedCount) {
+            throw new BadRequestException(
+                    "Capacity cannot be lower than the current " + confirmedCount + " confirmed RSVPs");
+        }
 
         DtoMapper.copyToEntity(request, event);
         Event savedEvent = eventRepository.save(event);

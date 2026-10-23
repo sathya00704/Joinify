@@ -6,6 +6,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
+import java.util.Optional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -106,5 +109,8 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @Query("SELECT e FROM Event e JOIN FETCH e.organizer WHERE e.organizer.id = :organizerId AND e.dateTime < :currentDateTime ORDER BY e.dateTime DESC")
     List<Event> findPastEventsByOrganizerWithOrganizer(@Param("organizerId") Long organizerId, @Param("currentDateTime") LocalDateTime currentDateTime);
 
-
+    // SELECT ... FOR UPDATE: locks this event row until the current transaction ends
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT e FROM Event e WHERE e.id = :id")
+    Optional<Event> findByIdForUpdate(@Param("id") Long id);
 }

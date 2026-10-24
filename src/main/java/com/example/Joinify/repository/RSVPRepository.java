@@ -43,10 +43,6 @@ public interface RSVPRepository extends JpaRepository<RSVP, Long> {
     @Query("SELECT r FROM RSVP r WHERE r.event.id = :eventId AND r.status = 'CONFIRMED'")
     List<RSVP> findConfirmedRSVPsByEventId(@Param("eventId") Long eventId);
 
-    // Find pending RSVPs for an event
-    @Query("SELECT r FROM RSVP r WHERE r.event.id = :eventId AND r.status = 'PENDING'")
-    List<RSVP> findPendingRSVPsByEventId(@Param("eventId") Long eventId);
-
     // Find user's upcoming event RSVPs
     @Query("SELECT r FROM RSVP r WHERE r.user.id = :userId AND r.event.dateTime > :currentDateTime AND r.status = 'CONFIRMED' ORDER BY r.event.dateTime ASC")
     List<RSVP> findUserUpcomingRSVPs(@Param("userId") Long userId, @Param("currentDateTime") LocalDateTime currentDateTime);

@@ -734,7 +734,6 @@ class OrganizerDashboard {
                         <p><strong>Location:</strong> ${event.location}</p>
                         <p><strong>Capacity:</strong> ${event.maxCapacity}</p>
                         <p><strong>Confirmed RSVPs:</strong> ${rsvpCount.confirmed || 0}</p>
-                        <p><strong>Pending RSVPs:</strong> ${rsvpCount.pending || 0}</p>
                         <p><strong>Total RSVPs:</strong> ${rsvpCount.total || 0}</p>
                         <p><strong>Available Spots:</strong> ${event.maxCapacity - (rsvpCount.confirmed || 0)}</p>
                         ${eventFee}
@@ -841,7 +840,7 @@ class OrganizerDashboard {
             `"SUMMARY"`,
             `"Total Attendees: ${attendees.length}"`,
             `"Confirmed: ${rsvpCount.confirmed || 0}"`,
-            `"Pending: ${rsvpCount.pending || 0}"`,
+            `"Total RSVPs: ${rsvpCount.total || 0}"`,
             `"Capacity: ${event.maxCapacity}"`,
             `"Available: ${event.maxCapacity - (rsvpCount.confirmed || 0)}"`
         ].join(',') + '\n';

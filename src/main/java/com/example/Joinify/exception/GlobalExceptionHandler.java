@@ -22,6 +22,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -340,6 +342,42 @@ public class GlobalExceptionHandler {
         );
 
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    // Wrong HTTP method for an existing URL (e.g. PUT on a GET-only endpoint) -> 405
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupported(
+            HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+
+        logger.warn("Method not supported: {} {}", ex.getMethod(), request.getRequestURI());
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                "Method " + ex.getMethod() + " is not supported for this endpoint",
+                "Supported methods: " + ex.getSupportedHttpMethods(),
+                HttpStatus.METHOD_NOT_ALLOWED.value(),
+                "Method Not Allowed",
+                request.getRequestURI()
+        );
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.METHOD_NOT_ALLOWED);
+    }
+
+    // URL that doesn't exist at all -> 404
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFound(
+            NoResourceFoundException ex, HttpServletRequest request) {
+
+        logger.warn("No endpoint found: {}", request.getRequestURI());
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                "Endpoint not found",
+                "No endpoint exists at this path",
+                HttpStatus.NOT_FOUND.value(),
+                "Not Found",
+                request.getRequestURI()
+        );
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
     // Handle all other exceptions

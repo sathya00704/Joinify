@@ -41,14 +41,6 @@ public class RSVPController {
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/event/{eventId}/status")
-    @PreAuthorize("hasRole('ATTENDEE') or hasRole('ORGANIZER')")
-    public ResponseEntity<RsvpResponse> updateRSVPStatus(@PathVariable Long eventId,
-                                                         @RequestParam RSVPStatus status,
-                                                         Authentication authentication) {
-        return ResponseEntity.ok(rsvpService.updateRSVPStatus(currentUserId(authentication), eventId, status));
-    }
-
     @GetMapping("/event/{eventId}/status")
     @PreAuthorize("hasRole('ATTENDEE') or hasRole('ORGANIZER')")
     public ResponseEntity<RSVPStatus> getRSVPStatus(@PathVariable Long eventId, Authentication authentication) {
@@ -97,20 +89,6 @@ public class RSVPController {
     public ResponseEntity<List<AttendeeResponse>> getConfirmedAttendeesForEvent(@PathVariable Long eventId,
                                                                                 Authentication authentication) {
         return ResponseEntity.ok(rsvpService.getConfirmedAttendeesForEvent(eventId, authentication.getName()));
-    }
-
-    @GetMapping("/event/{eventId}/pending")
-    @PreAuthorize("hasRole('ORGANIZER')")
-    public ResponseEntity<List<AttendeeResponse>> getPendingRSVPsForEvent(@PathVariable Long eventId,
-                                                                          Authentication authentication) {
-        return ResponseEntity.ok(rsvpService.getPendingRSVPsForEvent(eventId, authentication.getName()));
-    }
-
-    @PostMapping("/event/{eventId}/confirm-pending")
-    @PreAuthorize("hasRole('ORGANIZER')")
-    public ResponseEntity<List<AttendeeResponse>> confirmPendingRSVPs(@PathVariable Long eventId,
-                                                                      Authentication authentication) {
-        return ResponseEntity.ok(rsvpService.confirmPendingRSVPs(eventId, authentication.getName()));
     }
 
     // ===================== Public counts =====================

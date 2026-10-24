@@ -317,10 +317,7 @@ class AttendeeDashboard {
                         <button class="btn btn-sm btn-secondary" onclick="attendeeDashboard.viewEventDetails(${rsvp.event.id})">
                             View Details
                         </button>
-                        ${rsvp.status === 'CONFIRMED' ?
-                            `<button class="btn btn-sm btn-danger" onclick="attendeeDashboard.confirmCancelRSVP(${rsvp.event.id}, '${rsvp.event.title.replace(/'/g, "\\'")}')">Cancel RSVP</button>` :
-                            `<button class="btn btn-sm btn-success" onclick="attendeeDashboard.confirmRSVP(${rsvp.event.id})">Confirm</button>`
-                        }
+                        <button class="btn btn-sm btn-danger" onclick="attendeeDashboard.confirmCancelRSVP(${rsvp.event.id}, '${rsvp.event.title.replace(/'/g, "\\'")}')">Cancel RSVP</button>
                     </div>
                 </div>
             `).join('');
@@ -446,19 +443,6 @@ class AttendeeDashboard {
             await this.loadDashboardData();
         } catch (error) {
             showToast(error.message || 'Failed to cancel RSVP', 'error');
-        } finally {
-            hideLoading();
-        }
-    }
-
-    async confirmRSVP(eventId) {
-        try {
-            showLoading();
-            await api.updateRSVPStatus(eventId, 'CONFIRMED');
-            showToast('RSVP confirmed!', 'success');
-            await this.loadDashboardData();
-        } catch (error) {
-            showToast(error.message || 'Failed to confirm RSVP', 'error');
         } finally {
             hideLoading();
         }

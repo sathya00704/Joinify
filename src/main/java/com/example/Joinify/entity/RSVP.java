@@ -35,7 +35,7 @@ public class RSVP {
     // Constructors
     public RSVP() {
         this.rsvpDate = LocalDateTime.now();
-        this.status = RSVPStatus.PENDING;
+        this.status = RSVPStatus.CONFIRMED;
     }
 
     public RSVP(Long id, User user, Event event, RSVPStatus status, LocalDateTime rsvpDate) {

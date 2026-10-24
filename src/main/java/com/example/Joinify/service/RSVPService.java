@@ -53,14 +53,6 @@ public class RSVPService {
         return DtoMapper.toRsvpResponse(rsvpRepository.save(rsvp));
     }
 
-    public RsvpResponse updateRSVPStatus(Long userId, Long eventId, RSVPStatus status) {
-        RSVP rsvp = rsvpRepository.findByUserIdAndEventId(userId, eventId)
-                .orElseThrow(() -> new ResourceNotFoundException("RSVP not found for this event"));
-
-        rsvp.setStatus(status);
-        return DtoMapper.toRsvpResponse(rsvpRepository.save(rsvp));
-    }
-
     public void cancelRSVP(Long userId, Long eventId) {
         RSVP rsvp = rsvpRepository.findByUserIdAndEventId(userId, eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("RSVP not found for this event"));
@@ -98,26 +90,6 @@ public class RSVPService {
 
     public List<AttendeeResponse> getConfirmedAttendeesForEvent(Long eventId, String organizerUsername) {
         requireEventOwner(eventId, organizerUsername);
-        return DtoMapper.toAttendeeResponses(rsvpRepository.findConfirmedRSVPsByEventIdWithUser(eventId));
-    }
-
-    public List<AttendeeResponse> getPendingRSVPsForEvent(Long eventId, String organizerUsername) {
-        requireEventOwner(eventId, organizerUsername);
-        return DtoMapper.toAttendeeResponses(rsvpRepository.findPendingRSVPsByEventId(eventId));
-    }
-
-    public List<AttendeeResponse> confirmPendingRSVPs(Long eventId, String organizerUsername) {
-        requireEventOwner(eventId, organizerUsername);
-        List<RSVP> pendingRSVPs = rsvpRepository.findPendingRSVPsByEventId(eventId);
-
-        for (RSVP rsvp : pendingRSVPs) {
-            if (isEventAtCapacity(eventId)) {
-                break; // Stop if capacity is reached
-            }
-            rsvp.setStatus(RSVPStatus.CONFIRMED);
-            rsvpRepository.save(rsvp);
-        }
-
         return DtoMapper.toAttendeeResponses(rsvpRepository.findConfirmedRSVPsByEventIdWithUser(eventId));
     }
 

@@ -243,12 +243,6 @@ class ApiService {
         });
     }
 
-    async updateRSVPStatus(eventId, status) {
-        return this.request(`/rsvp/event/${eventId}/status?status=${status}`, {
-            method: 'PUT'
-        });
-    }
-
     async getRSVPStatus(eventId) {
         return this.request(`/rsvp/event/${eventId}/status`);
     }
@@ -265,10 +259,6 @@ class ApiService {
         return this.request(`/rsvp/event/${eventId}/attendees`);
     }
 
-    async getPendingRSVPs(eventId) {
-        return this.request(`/rsvp/event/${eventId}/pending`);
-    }
-
     async getMyRSVPs() {
         return this.request('/rsvp/my-rsvps');
     }
@@ -283,12 +273,6 @@ class ApiService {
 
     async getRSVPCount(eventId) {
         return this.request(`/rsvp/event/${eventId}/count`);
-    }
-
-    async confirmPendingRSVPs(eventId) {
-        return this.request(`/rsvp/event/${eventId}/confirm-pending`, {
-            method: 'POST'
-        });
     }
 
     // Test connectivity method

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Delivery Issue</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #dc3545; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background: #f8f9fa; }
+        .details { background: white; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .footer { text-align: center; padding: 20px; color: #666; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Email Delivery Issue</h1>
+    </div>
+    <div class="content">
+        <p>Hello <span th:text="${organizerName}">Organizer</span>,</p>
+
+        <p>
+            The <strong th:text="${emailType}">event update</strong> email for your event
+            <strong th:text="${eventTitle}">Event Title</strong> could not be delivered to
+            <strong th:text="${failedCount}">0</strong> of
+            <span th:text="${totalCount}">0</span> attendees.
+        </p>
+
+        <div class="details">
+            <p><strong>Attendees who did not receive it:</strong></p>
+            <ul>
+                <li th:each="email : ${failedRecipients}" th:text="${email}">attendee@example.com</li>
+            </ul>
+        </div>
+
+        <p>This issue is from Joinify's end and will be rectified. You may want to inform these attendees directly in the meantime.</p>
+        <p>For any assistance, contact us at support@joinify.com</p>
+    </div>
+    <div class="footer">
+        <p>Thank you for using Joinify!</p>
+        <p>This is an automated message, please do not reply.</p>
+    </div>
+</div>
+</body>
+</html>

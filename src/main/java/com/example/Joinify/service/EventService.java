@@ -9,18 +9,21 @@ import com.example.Joinify.exception.BadRequestException;
 import com.example.Joinify.exception.ResourceNotFoundException;
 import com.example.Joinify.exception.UnauthorizedException;
 import com.example.Joinify.mapper.DtoMapper;
+import com.example.Joinify.notification.EventEmailDetails;
+import com.example.Joinify.notification.EventReminderNotification;
+import com.example.Joinify.notification.EventUpdatedNotification;
 import com.example.Joinify.repository.EventRepository;
 import com.example.Joinify.repository.RSVPRepository;
 import com.example.Joinify.exception.ForbiddenException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -33,7 +36,7 @@ public class EventService {
     private RSVPRepository rsvpRepository;
 
     @Autowired
-    private EmailService emailService;
+    private ApplicationEventPublisher eventPublisher;
 
     @Autowired
     private UserService userService;
@@ -166,20 +169,20 @@ public class EventService {
                 .orElseThrow(() -> new UnauthorizedException("User not found"));
     }
 
+    // Publishes a notification; the emails are sent on a background thread AFTER this transaction commits
     private void notifyAttendeesOfUpdate(Event event) {
-        try {
-            List<String> attendeeEmails = rsvpRepository.findConfirmedAttendeesByEventId(event.getId())
-                    .stream()
-                    .map(User::getEmail)
-                    .collect(Collectors.toList());
-
-            if (!attendeeEmails.isEmpty()) {
-                emailService.sendEventUpdateNotification(event, attendeeEmails);
-            }
-        } catch (Exception e) {
-            // Don't fail the update if email sending fails
-            System.err.println("Failed to send event update notifications: " + e.getMessage());
+        List<String> attendeeEmails = getConfirmedAttendeeEmails(event.getId());
+        if (!attendeeEmails.isEmpty()) {
+            eventPublisher.publishEvent(
+                    new EventUpdatedNotification(EventEmailDetails.from(event), attendeeEmails));
         }
+    }
+
+    private List<String> getConfirmedAttendeeEmails(Long eventId) {
+        return rsvpRepository.findConfirmedAttendeesByEventId(eventId)
+                .stream()
+                .map(User::getEmail)
+                .toList();
     }
 
     // Business rule that annotations can't express: must look like an image link
@@ -237,21 +240,18 @@ public class EventService {
             throw new BadRequestException("Cannot send reminders for past events");
         }
 
-        List<User> confirmedAttendees = rsvpRepository.findConfirmedAttendeesByEventId(eventId);
-        if (confirmedAttendees.isEmpty()) {
-            throw new BadRequestException("No confirmed attendees to send reminders to");
-        }
-
         if (customMessage != null && customMessage.length() > 500) {
             throw new BadRequestException("Custom message cannot exceed 500 characters");
         }
 
-        List<String> attendeeEmails = confirmedAttendees.stream()
-                .map(User::getEmail)
-                .collect(Collectors.toList());
+        List<String> attendeeEmails = getConfirmedAttendeeEmails(eventId);
+        if (attendeeEmails.isEmpty()) {
+            throw new BadRequestException("No confirmed attendees to send reminders to");
+        }
 
-        emailService.sendManualEventReminder(event, attendeeEmails, customMessage);
-        return "Reminder sent to " + attendeeEmails.size() + " attendees successfully";
+        eventPublisher.publishEvent(
+                new EventReminderNotification(EventEmailDetails.from(event), attendeeEmails, customMessage));
+        return "Reminder is being sent to " + attendeeEmails.size() + " attendees";
     }
 
     public void validateReminderPermission(Long eventId, String username) {

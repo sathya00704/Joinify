@@ -68,6 +68,10 @@ public class EventService {
                     "Capacity cannot be lower than the current " + confirmedCount + " confirmed RSVPs");
         }
 
+        // Rescheduled -> attendees should get a fresh 24-hour reminder for the new date
+        if (!request.dateTime().equals(event.getDateTime())) {
+            event.setReminderSent(false);
+        }
         DtoMapper.copyToEntity(request, event);
         Event savedEvent = eventRepository.save(event);
 
@@ -250,7 +254,7 @@ public class EventService {
         }
 
         eventPublisher.publishEvent(
-                new EventReminderNotification(EventEmailDetails.from(event), attendeeEmails, customMessage));
+                new EventReminderNotification(EventEmailDetails.from(event), attendeeEmails, customMessage, false));
         return "Reminder is being sent to " + attendeeEmails.size() + " attendees";
     }
 

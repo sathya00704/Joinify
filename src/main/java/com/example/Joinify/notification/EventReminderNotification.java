@@ -2,5 +2,10 @@ package com.example.Joinify.notification;
 
 import java.util.List;
 
-public record EventReminderNotification(EventEmailDetails event, List<String> recipients, String customMessage) {
+// automatic = true  -> sent by the 24-hour scheduler
+// automatic = false -> sent manually by the organizer
+public record EventReminderNotification(EventEmailDetails event,
+                                        List<String> recipients,
+                                        String customMessage,
+                                        boolean automatic) {
 }

@@ -23,6 +23,7 @@ public class EmailNotificationListener {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onEventReminder(EventReminderNotification notification) {
-        emailService.sendEventReminder(notification.event(), notification.recipients(), notification.customMessage());
+        emailService.sendEventReminder(notification.event(), notification.recipients(),
+                notification.customMessage(), notification.automatic());
     }
 }

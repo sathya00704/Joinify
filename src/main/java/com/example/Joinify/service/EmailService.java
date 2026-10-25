@@ -53,14 +53,24 @@ public class EmailService {
         notifyOrganizerOfFailures(event, "event update", failed, recipients.size());
     }
 
-    public void sendEventReminder(EventEmailDetails event, List<String> recipients, String customMessage) {
+    public void sendEventReminder(EventEmailDetails event, List<String> recipients,
+                                  String customMessage, boolean automatic) {
         Context context = baseContext(event);
         context.setVariable("customMessage", customMessage != null && !customMessage.isBlank()
                 ? customMessage : "Don't forget about this upcoming event!");
+        context.setVariable("messageLabel", automatic ? "Reminder:" : "Message from Organizer:");
+        context.setVariable("footerNote", automatic
+                ? "This is an automatic reminder from Joinify."
+                : "This reminder was sent by the event organizer.");
+
+        String subject = automatic
+                ? "Starting soon: " + event.title()
+                : "Event Reminder: " + event.title();
 
         String html = templateEngine.process("manual-event-reminder", context);
-        List<String> failed = sendToEach(recipients, "Event Reminder: " + event.title(), html);
-        notifyOrganizerOfFailures(event, "event reminder", failed, recipients.size());
+        List<String> failed = sendToEach(recipients, subject, html);
+        notifyOrganizerOfFailures(event, automatic ? "automatic event reminder" : "event reminder",
+                failed, recipients.size());
     }
 
     // One email per recipient: nobody sees anyone else's address,

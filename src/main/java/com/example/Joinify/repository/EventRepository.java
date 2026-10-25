@@ -113,4 +113,10 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT e FROM Event e WHERE e.id = :id")
     Optional<Event> findByIdForUpdate(@Param("id") Long id);
+
+    // Events starting within (now, cutoff] that haven't had their automatic reminder yet
+    @Query("SELECT e FROM Event e JOIN FETCH e.organizer " +
+            "WHERE e.reminderSent = false AND e.dateTime > :now AND e.dateTime <= :cutoff")
+    List<Event> findEventsNeedingReminder(@Param("now") LocalDateTime now,
+                                          @Param("cutoff") LocalDateTime cutoff);
 }

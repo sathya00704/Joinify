@@ -24,7 +24,7 @@
     <p>Hello!</p>
 
     <div class="custom-message">
-      <p><strong>Message from Organizer:</strong></p>
+      <p><strong th:text="${messageLabel}">Message from Organizer:</strong></p>
       <p th:text="${customMessage}">Custom reminder message</p>
     </div>
 
@@ -41,7 +41,7 @@
   </div>
   <div class="footer">
     <p>Thank you for using Joinify!</p>
-    <p>This reminder was sent by the event organizer.</p>
+    <p th:text="${footerNote}">This reminder was sent by the event organizer.</p>
   </div>
 </div>
 </body>

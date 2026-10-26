@@ -1,5 +1,6 @@
 // API Configuration
-const API_BASE_URL = 'http://localhost:8080/api';
+// Relative: works on localhost and on any deployed domain
+const API_BASE_URL = '/api';
 
 // API Helper Class
 class ApiService {
@@ -46,8 +47,10 @@ class ApiService {
             const response = await fetch(`${this.baseURL}${endpoint}`, config);
 
             // 401 = not logged in / token expired -> back to login.
+            // Except on /auth/ calls: a 401 from /auth/login just means wrong credentials,
+            // so it falls through and the error message is shown.
             // 403 = logged in but not allowed -> falls through and shows the error message.
-            if (response.status === 401) {
+            if (response.status === 401 && !endpoint.startsWith('/auth/')) {
                 localStorage.removeItem('jwt_token');
                 window.location.href = 'index.html';
                 throw new Error('Authentication failed');
@@ -243,6 +246,7 @@ class ApiService {
         });
     }
 
+
     async getRSVPStatus(eventId) {
         return this.request(`/rsvp/event/${eventId}/status`);
     }
@@ -259,6 +263,7 @@ class ApiService {
         return this.request(`/rsvp/event/${eventId}/attendees`);
     }
 
+
     async getMyRSVPs() {
         return this.request('/rsvp/my-rsvps');
     }
@@ -274,6 +279,7 @@ class ApiService {
     async getRSVPCount(eventId) {
         return this.request(`/rsvp/event/${eventId}/count`);
     }
+
 
     // Test connectivity method
     async testConnection() {

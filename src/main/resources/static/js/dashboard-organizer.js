@@ -105,7 +105,7 @@ class OrganizerDashboard {
 
         tbody.innerHTML = `
             <tr>
-                <td>${nextEvent.title}</td>
+                <td>${escapeHtml(nextEvent.title)}</td>
                 <td>${this.formatDateTime(nextEvent.dateTime)}</td>
                 <td id="attendees-${nextEvent.id}">Loading...</td>
                 <td><span class="event-status ${status}">${status}</span></td>
@@ -172,7 +172,7 @@ class OrganizerDashboard {
                         <td colspan="5" class="capacity-alert-row seats-filled">
                             <div class="alert alert-danger">
                                 <i class="fas fa-exclamation-triangle"></i>
-                                <strong>SEATS FILLED!</strong> Your event "${event.title}" has reached maximum capacity (${maxCapacity} attendees).
+                                <strong>SEATS FILLED!</strong> Your event "${escapeHtml(event.title)}" has reached maximum capacity (${maxCapacity} attendees).
                                 <button class="btn btn-sm btn-warning ml-2" onclick="organizerDashboard.closeRegistration(${event.id})">
                                     Close Registration
                                 </button>
@@ -185,7 +185,7 @@ class OrganizerDashboard {
                         <td colspan="5" class="capacity-alert-row almost-full">
                             <div class="alert alert-warning">
                                 <i class="fas fa-exclamation-circle"></i>
-                                <strong>Almost Full!</strong> Only ${availableSpots} seat${availableSpots !== 1 ? 's' : ''} remaining for "${event.title}".
+                                <strong>Almost Full!</strong> Only ${availableSpots} seat${availableSpots !== 1 ? 's' : ''} remaining for "${escapeHtml(event.title)}".
                             </div>
                         </td>
                     `;
@@ -234,7 +234,7 @@ class OrganizerDashboard {
             // Render event image if available
             const eventImage = event.imageUrl ?
                 `<div class="event-image-container">
-                    <img src="${event.imageUrl}" alt="${event.title}" class="event-image"
+                    <img src="${escapeHtml(event.imageUrl)}" alt="${escapeHtml(event.title)}" class="event-image"
                          onerror="this.style.display='none';">
                 </div>` : '';
 
@@ -257,16 +257,16 @@ class OrganizerDashboard {
                 <div class="event-card">
                     ${eventImage}
                     <div class="event-card-header">
-                        <div class="event-card-title">${event.title}</div>
+                        <div class="event-card-title">${escapeHtml(event.title)}</div>
                         <div class="event-card-meta">
                             <span><i class="fas fa-calendar"></i> ${this.formatDateTime(event.dateTime)}</span>
-                            <span><i class="fas fa-map-marker-alt"></i> ${event.location}</span>
+                            <span><i class="fas fa-map-marker-alt"></i> ${escapeHtml(event.location)}</span>
                             <span><i class="fas fa-users"></i> <span id="capacity-${event.id}">Loading...</span>/${event.maxCapacity} capacity</span>
                             ${eventFee}
                             ${statusBadge}
                             ${capacityStatus}
                         </div>
-                        <div class="event-card-description">${event.description || 'No description available'}</div>
+                        <div class="event-card-description">${escapeHtml(event.description || 'No description available')}</div>
                     </div>
                     <div class="event-card-footer">
                         <div class="event-status ${status}">${status}</div>
@@ -274,7 +274,7 @@ class OrganizerDashboard {
                             <button class="btn btn-sm btn-secondary" onclick="organizerDashboard.viewEventDetails(${event.id})">
                                 Details
                             </button>
-                            <button class="btn btn-sm btn-success" onclick="organizerDashboard.downloadAttendeesCSV(${event.id}, '${event.title.replace(/'/g, "\\'")}')">
+                            <button class="btn btn-sm btn-success" onclick="organizerDashboard.downloadAttendeesXLSX(${event.id}, ${jsArg(event.title)})">
                                 <i class="fas fa-download"></i> Export
                             </button>
                             ${registrationControls}
@@ -428,7 +428,7 @@ class OrganizerDashboard {
         const select = document.getElementById('attendee-event-select');
         select.innerHTML = '<option value="">Select an event</option>' +
             this.myEvents.map(event =>
-                `<option value="${event.id}">${event.title}</option>`
+                `<option value="${event.id}">${escapeHtml(event.title)}</option>`
             ).join('');
 
         select.addEventListener('change', (e) => {
@@ -456,11 +456,11 @@ class OrganizerDashboard {
                     ${attendees.map(attendee => `
                         <div class="attendee-item">
                             <div class="attendee-info">
-                                <h4>${attendee.username}</h4>
-                                <p>${attendee.email}</p>
+                                <h4>${escapeHtml(attendee.username)}</h4>
+                                <p>${escapeHtml(attendee.email)}</p>
                             </div>
                             <div class="attendee-actions">
-                                <button class="btn btn-sm btn-secondary" onclick="organizerDashboard.contactAttendee('${attendee.email}')">
+                                <button class="btn btn-sm btn-secondary" onclick="organizerDashboard.contactAttendee(${jsArg(attendee.email)})">
                                     Contact
                                 </button>
                             </div>
@@ -717,7 +717,7 @@ class OrganizerDashboard {
 
             const eventImage = event.imageUrl ?
                 `<div class="modal-event-image">
-                    <img src="${event.imageUrl}" alt="${event.title}" style="max-width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 15px;" onerror="this.style.display='none';">
+                    <img src="${escapeHtml(event.imageUrl)}" alt="${escapeHtml(event.title)}" style="max-width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 15px;" onerror="this.style.display='none';">
                 </div>` : '';
 
             const eventFee = event.fee && event.fee > 0 ?
@@ -729,9 +729,9 @@ class OrganizerDashboard {
                 <div class="event-details scrollable-content">
                     ${eventImage}
                     <div class="event-info">
-                        <p><strong>Description:</strong> ${event.description || 'No description available'}</p>
+                        <p><strong>Description:</strong> ${escapeHtml(event.description || 'No description available')}</p>
                         <p><strong>Date & Time:</strong> ${this.formatDateTime(event.dateTime)}</p>
-                        <p><strong>Location:</strong> ${event.location}</p>
+                        <p><strong>Location:</strong> ${escapeHtml(event.location)}</p>
                         <p><strong>Capacity:</strong> ${event.maxCapacity}</p>
                         <p><strong>Confirmed RSVPs:</strong> ${rsvpCount.confirmed || 0}</p>
                         <p><strong>Total RSVPs:</strong> ${rsvpCount.total || 0}</p>
@@ -741,7 +741,7 @@ class OrganizerDashboard {
                         <div class="attendees-section">
                             <div class="attendees-header">
                                 <h4>Attendees (${attendees.length})</h4>
-                                <button class="btn btn-sm btn-success" onclick="organizerDashboard.downloadAttendeesCSV(${eventId}, '${event.title.replace(/'/g, "\\'")}')">
+                                <button class="btn btn-sm btn-success" onclick="organizerDashboard.downloadAttendeesXLSX(${eventId}, ${jsArg(event.title)})">
                                     <i class="fas fa-download"></i> Download CSV
                                 </button>
                             </div>
@@ -749,8 +749,8 @@ class OrganizerDashboard {
                             <div class="attendees-preview">
                                 ${attendees.slice(0, 5).map(attendee => `
                                     <div class="attendee-preview">
-                                        <span class="attendee-name">${attendee.username}</span>
-                                        <span class="attendee-email">${attendee.email}</span>
+                                        <span class="attendee-name">${escapeHtml(attendee.username)}</span>
+                                        <span class="attendee-email">${escapeHtml(attendee.email)}</span>
                                     </div>
                                 `).join('')}
                                 ${attendees.length > 5 ? `<p class="more-attendees">... and ${attendees.length - 5} more attendees</p>` : ''}
@@ -768,12 +768,11 @@ class OrganizerDashboard {
         }
     }
 
-    // CSV Download functionality
-    async downloadAttendeesCSV(eventId, eventTitle) {
+    // Download attendees as a formatted Excel file (.xlsx)
+    async downloadAttendeesXLSX(eventId, eventTitle) {
         try {
             showLoading();
 
-            // Get detailed attendee data
             const [attendees, event, rsvpCount] = await Promise.all([
                 api.getEventAttendees(eventId),
                 api.getEventById(eventId),
@@ -785,105 +784,101 @@ class OrganizerDashboard {
                 return;
             }
 
-            // Convert to CSV
-            const csvData = this.convertAttendeesToCSV(attendees, event, rsvpCount);
+            const workbook = this.buildAttendeesWorkbook(attendees, event, rsvpCount);
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
 
-            // Create and download file
-            const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
+            link.href = url;
+            link.download = `${this.sanitizeFilename(eventTitle)}_attendees_${this.getCurrentDate()}.xlsx`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
 
-            if (link.download !== undefined) {
-                const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute('download', `${this.sanitizeFilename(eventTitle)}_attendees_${this.getCurrentDate()}.csv`);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-
-                showToast(`Attendees list downloaded successfully (${attendees.length} attendees)`, 'success');
-            } else {
-                showToast('CSV download not supported in this browser', 'error');
-            }
-
+            showToast(`Attendees list downloaded successfully (${attendees.length} attendees)`, 'success');
         } catch (error) {
-            //console.error('Error downloading attendees CSV:', error);
             showToast('Failed to download attendees list', 'error');
         } finally {
             hideLoading();
         }
     }
 
-    // Convert attendees data to CSV format
-    convertAttendeesToCSV(attendees, event, rsvpCount) {
-        // CSV Headers
-        const headers = [
-            'Event Title',
-            'Event Date',
-            'Event Location',
-            'Attendee Name',
-            'Email Address',
-            'Registration Date',
-            'RSVP Status',
-            'User ID',
-            'Contact'
-        ];
+    // Layout: Event Summary (headers + 1 row), Attendees (headers + rows), Export Info
+    buildAttendeesWorkbook(attendees, event, rsvpCount) {
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('Attendees');
 
-        // Create CSV content
-        let csvContent = headers.map(header => `"${header}"`).join(',') + '\n';
+        const addSectionTitle = (text) => {
+            const row = sheet.addRow([text]);
+            row.font = { bold: true, size: 13 };
+        };
 
-        // Add event summary row
-        csvContent += [
-            `"${event.title}"`,
-            `"${this.formatDateTime(event.dateTime)}"`,
-            `"${event.location}"`,
-            `"SUMMARY"`,
-            `"Total Attendees: ${attendees.length}"`,
-            `"Confirmed: ${rsvpCount.confirmed || 0}"`,
-            `"Total RSVPs: ${rsvpCount.total || 0}"`,
-            `"Capacity: ${event.maxCapacity}"`,
-            `"Available: ${event.maxCapacity - (rsvpCount.confirmed || 0)}"`
-        ].join(',') + '\n';
+        const addHeaderRow = (headers) => {
+            const row = sheet.addRow(headers);
+            row.eachCell(cell => {
+                cell.font = { bold: true };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDEBF7' } };
+                cell.border = { bottom: { style: 'thin' } };
+            });
+        };
 
-        // Add separator row
-        csvContent += Array(headers.length).fill('""').join(',') + '\n';
+        const confirmed = rsvpCount.confirmed || 0;
 
-        // Add attendee data
-        attendees.forEach(attendee => {
-            const row = [
-                `"${event.title}"`,
-                `"${this.formatDateTime(event.dateTime)}"`,
-                `"${event.location}"`,
-                `"${attendee.username || 'N/A'}"`,
-                `"${attendee.email || 'N/A'}"`,
-                `"${attendee.registrationDate ? this.formatDateTime(attendee.registrationDate) : 'N/A'}"`,
-                `"${attendee.rsvpStatus || 'CONFIRMED'}"`,
-                `"${attendee.id || 'N/A'}"`,
-                `"${attendee.email || 'N/A'}"`
-            ];
-            csvContent += row.join(',') + '\n';
+        // ----- Event summary -----
+        addSectionTitle('Event Summary');
+        addHeaderRow(['Event Title', 'Event Date', 'Event Location', 'Capacity', 'Confirmed RSVPs', 'Available Spots']);
+        sheet.addRow([
+            event.title,
+            this.formatDateTime(event.dateTime),
+            event.location,
+            event.maxCapacity,
+            confirmed,
+            Math.max(0, event.maxCapacity - confirmed)
+        ]);
+        sheet.addRow([]);
+
+        // ----- Attendees -----
+        addSectionTitle('Attendees');
+        addHeaderRow(['#', 'Attendee Name', 'Email Address', 'Registration Date', 'RSVP Status', 'User ID']);
+        attendees.forEach((attendee, index) => {
+            sheet.addRow([
+                index + 1,
+                attendee.username || 'N/A',
+                attendee.email || 'N/A',
+                attendee.registrationDate ? this.formatDateTime(attendee.registrationDate) : 'N/A',
+                attendee.rsvpStatus || 'CONFIRMED',
+                attendee.id || 'N/A'
+            ]);
+        });
+        sheet.addRow([]);
+
+        // ----- Export info -----
+        addSectionTitle('Export Info');
+        addHeaderRow(['Exported On', 'Exported By', 'Total Records']);
+        sheet.addRow([
+            new Date().toLocaleString(),
+            this.currentUser?.username || 'Organizer',
+            attendees.length
+        ]);
+
+        // Column widths (A-F)
+        [24, 24, 32, 22, 18, 16].forEach((width, i) => {
+            sheet.getColumn(i + 1).width = width;
         });
 
-        // Add footer with export info
-        csvContent += '\n';
-        csvContent += [
-            `"Export Date"`,
-            `"${new Date().toLocaleString()}"`,
-            `"Exported By"`,
-            `"${this.currentUser?.username || 'Organizer'}"`,
-            `"Total Records"`,
-            `"${attendees.length}"`,
-            `""`,
-            `""`,
-            `""`
-        ].join(',') + '\n';
-
-        return csvContent;
+        return workbook;
     }
 
-    // Helper method to sanitize filename
+    // Helper method to sanitize filename: "Bob's "Big" Party" -> "bob_s_big_party"
     sanitizeFilename(filename) {
-        return filename.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        return filename
+            .replace(/[^a-z0-9]+/gi, '_')   // any run of other characters -> one underscore
+            .replace(/^_+|_+$/g, '')        // no leading/trailing underscores
+            .toLowerCase();
     }
 
     // Helper method to get current date for filename
@@ -907,10 +902,10 @@ class OrganizerDashboard {
             const modalContent = `
                 <div class="attendees-table-container">
                     <div class="attendees-table-header">
-                        <h3>${event.title} - Attendees List</h3>
+                        <h3>${escapeHtml(event.title)} - Attendees List</h3>
                         <div class="table-actions">
-                            <button class="btn btn-success" onclick="organizerDashboard.downloadAttendeesCSV(${eventId}, '${event.title.replace(/'/g, "\\'")}')">
-                                <i class="fas fa-download"></i> Export CSV
+                            <button class="btn btn-success" onclick="organizerDashboard.downloadAttendeesXLSX(${eventId}, ${jsArg(event.title)})">
+                                <i class="fas fa-download"></i> Export Excel
                             </button>
                             <button class="btn btn-secondary" onclick="closeModal('attendees-modal')">
                                 <i class="fas fa-times"></i> Close
@@ -934,12 +929,12 @@ class OrganizerDashboard {
                                 <tbody>
                                     ${attendees.map((attendee, index) => `
                                         <tr>
-                                            <td>${attendee.username}</td>
-                                            <td>${attendee.email}</td>
+                                            <td>${escapeHtml(attendee.username)}</td>
+                                            <td>${escapeHtml(attendee.email)}</td>
                                             <td>${attendee.registrationDate ? this.formatDateTime(attendee.registrationDate) : 'N/A'}</td>
                                             <td><span class="status-badge confirmed">Confirmed</span></td>
                                             <td>
-                                                <button class="btn btn-sm btn-secondary" onclick="organizerDashboard.contactAttendee('${attendee.email}')">
+                                                <button class="btn btn-sm btn-secondary" onclick="organizerDashboard.contactAttendee(${jsArg(attendee.email)})">
                                                     <i class="fas fa-envelope"></i> Contact
                                                 </button>
                                             </td>
@@ -1073,7 +1068,7 @@ class OrganizerDashboard {
 
             const eventImage = event.imageUrl ?
                 `<div class="event-image-container">
-                    <img src="${event.imageUrl}" alt="${event.title}" class="event-image"
+                    <img src="${escapeHtml(event.imageUrl)}" alt="${escapeHtml(event.title)}" class="event-image"
                          onerror="this.style.display='none';">
                 </div>` : '';
 
@@ -1085,14 +1080,14 @@ class OrganizerDashboard {
                 <div class="event-card">
                     ${eventImage}
                     <div class="event-card-header">
-                        <div class="event-card-title">${event.title}</div>
+                        <div class="event-card-title">${escapeHtml(event.title)}</div>
                         <div class="event-card-meta">
                             <span><i class="fas fa-calendar"></i> ${this.formatDateTime(event.dateTime)}</span>
-                            <span><i class="fas fa-map-marker-alt"></i> ${event.location}</span>
+                            <span><i class="fas fa-map-marker-alt"></i> ${escapeHtml(event.location)}</span>
                             <span><i class="fas fa-users"></i> ${event.maxCapacity} capacity</span>
                             ${eventFee}
                         </div>
-                        <div class="event-card-description">${event.description || 'No description available'}</div>
+                        <div class="event-card-description">${escapeHtml(event.description || 'No description available')}</div>
                     </div>
                     <div class="event-card-footer">
                         <div class="event-status ${status}">${status}</div>
@@ -1342,7 +1337,7 @@ class OrganizerDashboard {
 
         select.innerHTML = '<option value="">Choose an event...</option>' +
             upcomingEvents.map(event =>
-                `<option value="${event.id}">${event.title} - ${this.formatDateTime(event.dateTime)}</option>`
+                `<option value="${event.id}">${escapeHtml(event.title)} - ${this.formatDateTime(event.dateTime)}</option>`
             ).join('');
 
         // Add event listener for attendee count display
@@ -1483,7 +1478,7 @@ class OrganizerDashboard {
 
         alertContainer.innerHTML = alerts.map(alert => `
             <div class="alert alert-${alert.type} alert-dismissible">
-                <span>${alert.message}</span>
+                <span>${escapeHtml(alert.message)}</span>
                 <div class="alert-actions">
                     <button class="btn btn-sm btn-outline-secondary" onclick="organizerDashboard.viewEventDetails(${alert.eventId})">
                         View Event

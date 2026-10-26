@@ -94,12 +94,12 @@ function createEventCard(event) {
                 <i class="fas fa-calendar-alt"></i>
             </div>
             <div class="event-content">
-                <h3 class="event-title">${event.title}</h3>
+                <h3 class="event-title">${escapeHtml(event.title)}</h3>
                 <div class="event-meta">
                     <span><i class="fas fa-clock"></i> ${formatDateTime(event.dateTime)}</span>
-                    <span><i class="fas fa-map-marker-alt"></i> ${event.location}</span>
+                    <span><i class="fas fa-map-marker-alt"></i> ${escapeHtml(event.location)}</span>
                 </div>
-                <p class="event-description">${truncateText(event.description || 'No description available', 100)}</p>
+                <p class="event-description">${escapeHtml(truncateText(event.description || 'No description available', 100))}</p>
                 <div class="event-footer">
                     <span class="event-capacity">
                         <i class="fas fa-users"></i> ${event.maxCapacity} spots
@@ -278,8 +278,13 @@ function viewAllEvents() {
     }
 }
 
+// There is no public event-details page: logged-in users go to their dashboard, others are asked to log in
 function viewEventDetails(eventId) {
-    window.location.href = `event-details.html?id=${eventId}`;
+    if (authManager.isLoggedIn()) {
+        redirectToDashboard();
+    } else {
+        showLogin();
+    }
 }
 
 // Update navigation for logged in users with role-based links

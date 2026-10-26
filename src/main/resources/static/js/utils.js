@@ -1,3 +1,21 @@
+// ===== XSS protection =====
+
+// Escape text before inserting it into HTML with innerHTML / template strings
+function escapeHtml(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// Safely pass a value as a JavaScript argument inside an inline onclick="..." attribute
+function jsArg(value) {
+    return escapeHtml(JSON.stringify(value ?? ''));
+}
+
 // Enhanced Utility functions for the Joinify application
 
 // Loading management
@@ -24,7 +42,7 @@ function showToast(message, type = 'info', duration = 5000) {
     toast.innerHTML = `
         <div class="toast-content">
             <i class="fas fa-${getToastIcon(type)}"></i>
-            <span>${message}</span>
+            <span>${escapeHtml(message)}</span>
             <button class="toast-close" onclick="this.parentElement.parentElement.remove()">
                 <i class="fas fa-times"></i>
             </button>

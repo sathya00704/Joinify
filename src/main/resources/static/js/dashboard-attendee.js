@@ -136,10 +136,10 @@ class AttendeeDashboard {
             container.innerHTML = `
                 <div class="event-list-item">
                     <div class="event-list-info">
-                        <h3>${nextEvent.event.title}</h3>
+                        <h3>${escapeHtml(nextEvent.event.title)}</h3>
                         <div class="event-list-meta">
                             <span><i class="fas fa-calendar"></i> ${this.formatDateTime(nextEvent.event.dateTime)}</span>
-                            <span><i class="fas fa-map-marker-alt"></i> ${nextEvent.event.location}</span>
+                            <span><i class="fas fa-map-marker-alt"></i> ${escapeHtml(nextEvent.event.location)}</span>
                             <span class="event-status confirmed">Confirmed</span>
                         </div>
                     </div>
@@ -147,7 +147,7 @@ class AttendeeDashboard {
                         <button class="btn btn-sm btn-secondary" onclick="attendeeDashboard.viewEventDetails(${nextEvent.event.id})">
                             View Details
                         </button>
-                        <button class="btn btn-sm btn-danger" onclick="attendeeDashboard.confirmCancelRSVP(${nextEvent.event.id}, '${nextEvent.event.title.replace(/'/g, "\\'")}')">
+                        <button class="btn btn-sm btn-danger" onclick="attendeeDashboard.confirmCancelRSVP(${nextEvent.event.id}, ${jsArg(nextEvent.event.title)})">
                             Cancel RSVP
                         </button>
                     </div>
@@ -239,7 +239,7 @@ class AttendeeDashboard {
                     `<button class="btn btn-sm btn-secondary" disabled>Full</button>` :
                     event.registrationStatus === 'CLOSED' ?
                     `<button class="btn btn-sm btn-secondary" disabled>Registration Closed</button>` :
-                    `<button class="btn btn-sm btn-primary" onclick="attendeeDashboard.confirmRSVPToEvent(${event.id}, '${event.title.replace(/'/g, "\\'")}')">RSVP</button>`;
+                    `<button class="btn btn-sm btn-primary" onclick="attendeeDashboard.confirmRSVPToEvent(${event.id}, ${jsArg(event.title)})">RSVP</button>`;
 
                 const eventImage = renderEventImage(event);
                 const eventFee = renderEventFee(event.fee);
@@ -249,14 +249,14 @@ class AttendeeDashboard {
                     <div class="event-card">
                         ${eventImage}
                         <div class="event-card-header">
-                            <div class="event-card-title">${event.title}</div>
+                            <div class="event-card-title">${escapeHtml(event.title)}</div>
                             <div class="event-card-meta">
                                 <span><i class="fas fa-calendar"></i> ${this.formatDateTime(event.dateTime)}</span>
-                                <span><i class="fas fa-map-marker-alt"></i> ${event.location}</span>
+                                <span><i class="fas fa-map-marker-alt"></i> ${escapeHtml(event.location)}</span>
                                 <span><i class="fas fa-users"></i> ${event.currentRSVPs}/${event.maxCapacity} capacity</span>
                                 ${eventFee}
                             </div>
-                            <div class="event-card-description">${event.description || 'No description available'}</div>
+                            <div class="event-card-description">${escapeHtml(event.description || 'No description available')}</div>
                         </div>
                         <div class="event-card-footer">
                             ${statusDisplay}
@@ -306,10 +306,10 @@ class AttendeeDashboard {
             container.innerHTML = sortedUpcomingEvents.map(rsvp => `
                 <div class="event-list-item">
                     <div class="event-list-info">
-                        <h3>${rsvp.event.title}</h3>
+                        <h3>${escapeHtml(rsvp.event.title)}</h3>
                         <div class="event-list-meta">
                             <span><i class="fas fa-calendar"></i> ${this.formatDateTime(rsvp.event.dateTime)}</span>
-                            <span><i class="fas fa-map-marker-alt"></i> ${rsvp.event.location}</span>
+                            <span><i class="fas fa-map-marker-alt"></i> ${escapeHtml(rsvp.event.location)}</span>
                             <span class="event-status ${rsvp.status.toLowerCase()}">${rsvp.status}</span>
                         </div>
                     </div>
@@ -317,7 +317,7 @@ class AttendeeDashboard {
                         <button class="btn btn-sm btn-secondary" onclick="attendeeDashboard.viewEventDetails(${rsvp.event.id})">
                             View Details
                         </button>
-                        <button class="btn btn-sm btn-danger" onclick="attendeeDashboard.confirmCancelRSVP(${rsvp.event.id}, '${rsvp.event.title.replace(/'/g, "\\'")}')">Cancel RSVP</button>
+                        <button class="btn btn-sm btn-danger" onclick="attendeeDashboard.confirmCancelRSVP(${rsvp.event.id}, ${jsArg(rsvp.event.title)})">Cancel RSVP</button>
                     </div>
                 </div>
             `).join('');
@@ -363,10 +363,10 @@ class AttendeeDashboard {
             container.innerHTML = sortedPastEvents.map(rsvp => `
                 <div class="event-list-item">
                     <div class="event-list-info">
-                        <h3>${rsvp.event.title}</h3>
+                        <h3>${escapeHtml(rsvp.event.title)}</h3>
                         <div class="event-list-meta">
                             <span><i class="fas fa-calendar"></i> ${this.formatDateTime(rsvp.event.dateTime)}</span>
-                            <span><i class="fas fa-map-marker-alt"></i> ${rsvp.event.location}</span>
+                            <span><i class="fas fa-map-marker-alt"></i> ${escapeHtml(rsvp.event.location)}</span>
                             <span class="event-status past">Completed</span>
                         </div>
                     </div>
@@ -448,6 +448,7 @@ class AttendeeDashboard {
         }
     }
 
+
     async viewEventDetails(eventId) {
         try {
             // Load event details and RSVP count
@@ -457,9 +458,9 @@ class AttendeeDashboard {
             // Prepare event image display
             const eventImage = event.imageUrl
                 ? `<div class="modal-event-image">
-                     <img src="${event.imageUrl}"
-                          alt="${event.title}"
-                          onclick="zoomImage('${event.imageUrl}', '${event.title.replace(/'/g, "\\'")}')">
+                     <img src="${escapeHtml(event.imageUrl)}"
+                          alt="${escapeHtml(event.title)}"
+                          onclick="zoomImage(${jsArg(event.imageUrl)}, ${jsArg(event.title)})">
                      <div class="image-zoom-hint">
                          <i class="fas fa-search-plus"></i> Click to zoom
                      </div>
@@ -481,15 +482,15 @@ class AttendeeDashboard {
                 <div class="event-details scrollable-content">
                     ${eventImage}
                     <div class="event-info">
-                        <p><strong>Description:</strong> ${event.description || 'No description available'}</p>
+                        <p><strong>Description:</strong> ${escapeHtml(event.description || 'No description available')}</p>
                         <p><strong>Date & Time:</strong> ${this.formatDateTime(event.dateTime)}</p>
-                        <p><strong>Location:</strong> ${event.location}</p>
+                        <p><strong>Location:</strong> ${escapeHtml(event.location)}</p>
                         <p><strong>Capacity:</strong> ${event.maxCapacity}</p>
                         <p><strong>Current RSVPs:</strong> ${rsvpCount.confirmed || 0}</p>
                         <p><strong>Available Spots:</strong> ${event.maxCapacity - (rsvpCount.confirmed || 0)}</p>
                         ${eventFee}
                         ${paymentInfo}
-                        <p><strong>Organizer:</strong> ${event.organizer?.username || 'Unknown'}</p>
+                        <p><strong>Organizer:</strong> ${escapeHtml(event.organizer?.username || 'Unknown')}</p>
                     </div>
                 </div>
             `;
@@ -602,7 +603,7 @@ class AttendeeDashboard {
                 ? `<button class="btn btn-sm btn-secondary" disabled>Full</button>`
                 : event.registrationStatus === 'CLOSED'
                 ? `<button class="btn btn-sm btn-secondary" disabled>Registration Closed</button>`
-                : `<button class="btn btn-sm btn-primary" onclick="attendeeDashboard.confirmRSVPToEvent(${event.id}, '${event.title.replace(/'/g, "\\'")}')">RSVP</button>`;
+                : `<button class="btn btn-sm btn-primary" onclick="attendeeDashboard.confirmRSVPToEvent(${event.id}, ${jsArg(event.title)})">RSVP</button>`;
 
             const eventImage = renderEventImage(event);
             const eventFee = renderEventFee(event.fee);
@@ -612,14 +613,14 @@ class AttendeeDashboard {
                 <div class="event-card">
                     ${eventImage}
                     <div class="event-card-header">
-                        <div class="event-card-title">${event.title}</div>
+                        <div class="event-card-title">${escapeHtml(event.title)}</div>
                         <div class="event-card-meta">
                             <span><i class="fas fa-calendar"></i> ${this.formatDateTime(event.dateTime)}</span>
-                            <span><i class="fas fa-map-marker-alt"></i> ${event.location}</span>
+                            <span><i class="fas fa-map-marker-alt"></i> ${escapeHtml(event.location)}</span>
                             <span><i class="fas fa-users"></i> ${event.currentRSVPs}/${event.maxCapacity} capacity</span>
                             ${eventFee}
                         </div>
-                        <div class="event-card-description">${event.description || 'No description available'}</div>
+                        <div class="event-card-description">${escapeHtml(event.description || 'No description available')}</div>
                     </div>
                     <div class="event-card-footer">
                         ${statusDisplay}
@@ -704,10 +705,10 @@ function renderEventImage(event) {
 
     return `
         <div class="event-image-container">
-            <img src="${event.imageUrl}"
-                 alt="${event.title}"
+            <img src="${escapeHtml(event.imageUrl)}"
+                 alt="${escapeHtml(event.title)}"
                  class="event-image"
-                 onclick="zoomImage('${event.imageUrl}', '${event.title.replace(/'/g, "\\'")}')">
+                 onclick="zoomImage(${jsArg(event.imageUrl)}, ${jsArg(event.title)})">
             <div class="zoom-overlay">
                 <i class="fas fa-search-plus"></i>
                 <span>Click to zoom</span>
@@ -724,14 +725,14 @@ function zoomImage(imageUrl, title) {
         <div class="image-zoom-overlay" onclick="closeImageZoom()">
             <div class="image-zoom-container">
                 <div class="image-zoom-header">
-                    <h3>${title}</h3>
+                    <h3>${escapeHtml(title)}</h3>
                     <button class="zoom-close" onclick="closeImageZoom()">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 <div class="image-zoom-content">
-                    <img src="${imageUrl}"
-                         alt="${title}"
+                    <img src="${escapeHtml(imageUrl)}"
+                         alt="${escapeHtml(title)}"
                          class="zoomed-image"
                          onload="this.style.opacity='1'"
                          onerror="this.src=''; this.alt='Image not available';">

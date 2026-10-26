@@ -13,6 +13,8 @@ import com.example.Joinify.repository.RSVPRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,6 +36,8 @@ public class RSVPService {
     @Autowired
     private UserService userService;
 
+    private static final Logger log = LoggerFactory.getLogger(RSVPService.class);
+
     // ===================== Create / update / cancel =====================
 
     public RsvpResponse createRSVP(Long userId, Long eventId) {
@@ -50,13 +54,16 @@ public class RSVPService {
         rsvp.setStatus(RSVPStatus.CONFIRMED);
         rsvp.setRsvpDate(LocalDateTime.now());
 
-        return DtoMapper.toRsvpResponse(rsvpRepository.save(rsvp));
+        RSVP savedRsvp = rsvpRepository.save(rsvp);
+        log.info("RSVP created: user {} -> event {}", userId, eventId);
+        return DtoMapper.toRsvpResponse(savedRsvp);
     }
 
     public void cancelRSVP(Long userId, Long eventId) {
         RSVP rsvp = rsvpRepository.findByUserIdAndEventId(userId, eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("RSVP not found for this event"));
         rsvpRepository.delete(rsvp);
+        log.info("RSVP cancelled: user {} -> event {}", userId, eventId);
     }
 
     // ===================== Current user's RSVPs =====================

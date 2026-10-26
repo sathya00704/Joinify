@@ -19,6 +19,8 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -41,6 +43,8 @@ public class EventService {
     @Autowired
     private UserService userService;
 
+    private static final Logger log = LoggerFactory.getLogger(EventService.class);
+
     // ===================== Create / update / delete =====================
 
     public EventResponse createEvent(EventRequest request, String organizerUsername) {
@@ -51,7 +55,9 @@ public class EventService {
         DtoMapper.copyToEntity(request, event);
         event.setOrganizer(organizer);
 
-        return DtoMapper.toEventResponse(eventRepository.save(event));
+        Event savedEvent = eventRepository.save(event);
+        log.info("Event {} '{}' created by {}", savedEvent.getId(), savedEvent.getTitle(), organizerUsername);
+        return DtoMapper.toEventResponse(savedEvent);
     }
 
     public EventResponse updateEvent(Long eventId, EventRequest request, String organizerUsername) {
@@ -74,6 +80,7 @@ public class EventService {
         }
         DtoMapper.copyToEntity(request, event);
         Event savedEvent = eventRepository.save(event);
+        log.info("Event {} updated by {}", eventId, organizerUsername);
 
         notifyAttendeesOfUpdate(savedEvent);
         return DtoMapper.toEventResponse(savedEvent);
@@ -82,6 +89,7 @@ public class EventService {
     public void deleteEvent(Long eventId, String organizerUsername) {
         Event event = getOwnedEvent(eventId, organizerUsername, "You can only delete your own events");
         eventRepository.delete(event);
+        log.info("Event {} deleted by {}", eventId, organizerUsername);
     }
 
     // ===================== Read (returns DTOs) =====================
@@ -255,6 +263,7 @@ public class EventService {
 
         eventPublisher.publishEvent(
                 new EventReminderNotification(EventEmailDetails.from(event), attendeeEmails, customMessage, false));
+        log.info("Manual reminder for event {} queued for {} attendees", eventId, attendeeEmails.size());
         return "Reminder is being sent to " + attendeeEmails.size() + " attendees";
     }
 
@@ -273,6 +282,7 @@ public class EventService {
             throw new BadRequestException("Registration is already closed for this event");
         }
         event.setRegistrationStatus(RegistrationStatus.CLOSED);
+        log.info("Registration closed for event {} by {}", eventId, organizerUsername);
         return eventRepository.save(event);
     }
 
@@ -282,6 +292,7 @@ public class EventService {
             throw new BadRequestException("Registration is already open for this event");
         }
         event.setRegistrationStatus(RegistrationStatus.OPEN);
+        log.info("Registration opened for event {} by {}", eventId, organizerUsername);
         return eventRepository.save(event);
     }
 

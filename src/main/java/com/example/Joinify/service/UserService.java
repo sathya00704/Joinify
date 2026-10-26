@@ -11,6 +11,8 @@ import com.example.Joinify.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +25,8 @@ public class UserService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     // Register a new user
     public User registerUser(RegisterRequest registerRequest) {
@@ -95,7 +99,9 @@ public class UserService {
         existingUser.setEmail(updatedUser.getEmail());
         // Don't update username or password through this method
 
-        return userRepository.save(existingUser);
+        User savedUser = userRepository.save(existingUser);
+        log.info("Email updated for user {}", currentUsername);
+        return savedUser;
     }
 
     // Change password: must prove the current password first
@@ -113,6 +119,7 @@ public class UserService {
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+        log.info("Password changed for user {}", username);
     }
 
     // Delete user by ID
@@ -121,6 +128,7 @@ public class UserService {
             throw new ResourceNotFoundException("User", "id", id);
         }
         userRepository.deleteById(id);
+        log.info("User {} deleted", id);
     }
 
     // Check if username exists

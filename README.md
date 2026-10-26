@@ -1,27 +1,20 @@
 **Joinify - Event Management System**
 
-**For video demo and screenshots**
-Please access from here: https://drive.google.com/drive/folders/1U3r9rAX_chI6jDnSxrEufttw2a2Bq4Ne?usp=sharing
-
-## **Overview:**
-Organizations and individuals often struggle with managing events efficiently—especially when it comes to organizing invitations, tracking RSVPs, sending reminders, and managing attendees. This project aims to build a web-based Event Management System that allows users to create, browse, and RSVP to events with role-based access, using a Java Spring Boot backend and minimal HTML/CSS/JS frontend.
+**Overview:**
+Organizations and individuals often struggle with managing events efficiently, especially when it comes to organizing invitations, tracking RSVPs, sending reminders, and managing attendees. Joinify is a web-based Event Management System that lets users create, browse, and RSVP to events with role-based access, using a Java Spring Boot backend and a minimal HTML/CSS/JS frontend.
 
 **Objective:**
 To develop a RESTful Event Management System where:
 
   * Organizers can create, update, and manage events.
   * Attendees can browse events, RSVP to them, and receive reminders.
-  * The system should support filtering, status tracking (upcoming/past), and secure access using authentication and role-based authorization.
+  * The system supports filtering, status tracking (upcoming/past), and secure access using authentication and role-based authorization.
 
-**Technical Stack:**
-* **Backend**: Spring Boot, JPA/Hibernate, RESTful API, JWT-based security.
-* **Frontend**: HTML, CSS, and JavaScript
-* **Database**: MySQL
+**Key Features:**
 
-## **Key Features:**
 **User Roles:**
-  * Organizer: Can create, edit, and delete events; view RSVPs for their events, download (CSV) list of attendees, send reminders
-  * Attendee: Can view and RSVP to available events.
+  * Organizer: Can create, edit, and delete events; open/close registration; view attendees and export them to Excel; send reminders.
+  * Attendee: Can browse and search upcoming events, RSVP, cancel an RSVP, and view their event history.
 
 **Event Functionality:**
 * Create, update, delete events with fields like:
@@ -29,81 +22,42 @@ To develop a RESTful Event Management System where:
   - Date and Time
   - Location
   - Max Capacity
-  - Banner Image
-  - Fee
+  - Banner image URL and Fee
 * Filter events into Upcoming and Past based on current date.
+* Open or close registration for an event.
 * RSVP Tracking:
-  - Attendees can RSVP to events.
-  - Organizers can view a list of attendees.
-  - Organizers can also download the list of attendees
-* Prevent overbooking (respect max capacity).
-* Reminder System:
-  - Users receive reminders via email notifications sent by Organizers.
+  - Attendees can RSVP to events and cancel their RSVP.
+  - Organizers can view the attendee list of their own events and export it as an Excel file.
+* Prevent overbooking:
+  - Max capacity is enforced, including when two people book the last spot at the same time (row lock on the event).
+  - One RSVP per user per event (unique constraint).
+  - Capacity cannot be reduced below the current number of confirmed RSVPs.
+* Email Notifications:
+  - Attendees are notified when an event they registered for is updated.
+  - Automatic reminder email 24 hours before the event starts.
+  - Organizers can send a manual reminder with a custom message.
+  - The organizer is informed if an email could not be delivered to some attendees.
+  - Emails are sent in the background, after the change is saved.
 
-## **Backend REST APIs (Spring Boot)**
-**Authentication Endpoints**
+**Security:**
+* JWT-based authentication with role-based authorization (Organizer / Attendee).
+* Organizers can only manage and view attendees of their own events.
+* Request/response DTOs, so passwords and internal fields are never returned by the API.
+* Input validation with clear error messages, and consistent JSON error responses.
+* Secrets (database, mail, JWT) are kept out of the code.
+* CORS restricted to the app's own origin; user content is escaped in the frontend (XSS protection).
 
-* POST /api/auth/register          - User registration
-* POST /api/auth/login             - User authentication  
-* GET  /api/auth/check-username/{username} - Check username availability
-* GET  /api/auth/check-email/{email}       - Check email availability
+**Technical:**
+* **Backend**: Java 17, Spring Boot 3.5, Spring Security, JWT, Spring Data JPA/Hibernate, RESTful API
+* **Email**: Spring Mail (Gmail SMTP) with Thymeleaf templates, @Async + scheduled jobs
+* **API Docs**: Swagger UI (springdoc-openapi)
+* **Frontend**: HTML, CSS, and JavaScript (Chart.js for charts, ExcelJS for Excel export)
+* **Database**: MySQL
 
-**Event Management Endpoints**
-
-* GET    /api/events               - Get all events
-* POST   /api/events               - Create new event
-* GET    /api/events/{id}          - Get event by ID
-* PUT    /api/events/{id}          - Update event
-* DELETE /api/events/{id}          - Delete event
-* GET    /api/events/upcoming      - Get upcoming events
-* GET    /api/events/past          - Get past events
-* GET    /api/events/search        - Search events by title/location
-* GET    /api/events/organizer/{id} - Get events by organizer
-* POST   /api/events/{id}/reminder - Send event reminder
-
-**RSVP Management Endpoints**
-
-* POST   /api/rsvp/{eventId}       - Create RSVP
-* PUT    /api/rsvp/{eventId}       - Update RSVP status
-* DELETE /api/rsvp/{eventId}       - Cancel RSVP
-* GET    /api/rsvp/event/{eventId} - Get RSVPs for event
-* GET    /api/rsvp/user/{userId}   - Get RSVPs for user
-* GET    /api/rsvp/event/{eventId}/count - Get RSVP count
-
-**User Management Endpoints**
-
-* GET    /api/users               - Get all users
-* GET    /api/users/{id}          - Get user by ID
-* PUT    /api/users/{id}          - Update user
-* DELETE /api/users/{id}          - Delete user
-* GET    /api/users/stats         - Get user statistics
-* GET    /api/users/organizers    - Get all organizers
-* GET    /api/users/attendees     - Get all attendees
-
-## **Database Model - Tables and Fields**
-
-### **Users Table**
-- id: BIGINT (Primary Key)
-- username: VARCHAR(20) (Unique)
-- email: VARCHAR(255) (Unique)
-- password: VARCHAR(255)
-- role: ENUM('ORGANIZER', 'ATTENDEE')
-
-### **Event Table**
-- id: BIGINT (Primary Key)
-- title: VARCHAR(100)
-- description: VARCHAR(500)
-- date_time: DATETIME
-- location: VARCHAR(100)
-- max_capacity: INT
-- image_url: VARCHAR(255)
-- fee: DECIMAL(10,2)
-- registration_status: ENUM('OPEN', 'CLOSED', 'SUSPENDED')
-- organizer_id: BIGINT (Foreign Key)
-
-### **RSVP Table**
-- id: BIGINT (Primary Key)
-- user_id: BIGINT (Foreign Key)
-- event_id: BIGINT (Foreign Key)
-- status: ENUM('PENDING', 'CONFIRMED', 'CANCELLED')
-- rsvp_date: DATETIME
+**Running Locally:**
+1. Create the database in MySQL:
+   `CREATE DATABASE event_management_db;`
+2. Copy `src/main/resources/application-secrets.properties.example` to `application-secrets.properties` (same folder) and fill in your MySQL password, a JWT secret, and Gmail address + app password. This file is ignored by Git.
+3. Run the app: `mvnw.cmd spring-boot:run` (Windows) or `./mvnw spring-boot:run`
+4. Open the app at `http://localhost:8080`
+5. API documentation: `http://localhost:8080/swagger-ui.html`

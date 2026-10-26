@@ -15,7 +15,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.Optional;
 
 @Service
@@ -35,6 +36,8 @@ public class AuthService {
 
     @Autowired
     private UserDetailsService userDetailsService;
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     // User Registration
     public RegisterResponse registerUser(RegisterRequest registerRequest) {
@@ -58,6 +61,7 @@ public class AuthService {
 
             // Save user
             User savedUser = userRepository.save(user);
+            log.info("New user registered: {} ({})", savedUser.getUsername(), savedUser.getRole());
 
             return new RegisterResponse(
                     "User registered successfully",
@@ -67,6 +71,7 @@ public class AuthService {
             );
 
         } catch (Exception e) {
+            log.error("Registration failed for username '{}'", registerRequest.getUsername(), e);
             return new RegisterResponse("Registration failed: " + e.getMessage(), null, null, false);
         }
     }
@@ -96,6 +101,8 @@ public class AuthService {
             // Generate JWT token
             String token = jwtUtil.generateToken(userDetails);
 
+            log.info("User logged in: {}", user.getUsername());
+
             return new LoginResponse(
                     token,
                     user.getUsername(),
@@ -105,8 +112,10 @@ public class AuthService {
             );
 
         } catch (BadCredentialsException e) {
+            log.warn("Failed login attempt for username '{}'", loginRequest.getUsername());
             return new LoginResponse(null, null, null, null, "Invalid username or password");
         } catch (Exception e) {
+            log.error("Login failed for username '{}'", loginRequest.getUsername(), e);
             return new LoginResponse(null, null, null, null, "Login failed: " + e.getMessage());
         }
     }
